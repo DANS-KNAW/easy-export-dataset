@@ -1,26 +1,26 @@
 easy-export-dataset
 ===================
 
-Export an EASY dataset to a BagIt directory.
+Export an EASY dataset to a Staged Digital Object set.
 
 
 SYNOPSIS
 --------
 
-    easy-export-dataset <dataset-pid> <export-bag-directory>
+    easy-export-dataset <dataset-pid> <staged-digital-object-set>
     
  
 DESCRIPTION
 -----------
 
-Exports an EASY dataset to a bag directory, i.e. a directory conforming to the [BagIt] format (referred to as `$BAG`
-in the following). If `$BAG` already exists the program terminates with an error message. 
+Exports an EASY dataset to a [Staged Digital Object set]. All the digital objects belonging to the dataset are 
+exported, including: the dataset, all file and folder items, download history and jump-off pages. If `dataset-pid`
+is not present in the Fedora repository or `stage-digital-object-set` cannot be created (e.g., it already exists)
+the program terminates with an error.
 
-The dataset files are contained in the bag's `$BAG/data` directory. The dataset metadata is put 
-in `$BAG/metadata/easymetadata.xml` in [EASY Metadata] format. The file metadata is stored in `$BAG/metadata/files.xml`
-which has a document element called `<files>` and below that one `<file>` element for each file. Each `<file>` element
-has one nested [DCTERMS format] element with the [MIME Type] of the file.
-
+All datastreams except `RELS-EXT` are exported to external files referenced from a `cfg.json` ([Digital Object Configuration]) 
+file. `RELS-EXT` is exported to the "relations"-map in this file. Fedora PIDs that reference digital objects in the
+same dataset are replaced by the appropriate SDO-name. 
 
 ARGUMENTS
 ---------
@@ -61,8 +61,8 @@ Steps:
         cd easy-export-dataset
         mvn install
   
-
-[BagIt]: https://tools.ietf.org/html/draft-kunze-bagit-11
+[Staged Digital Object set]: https://github.com/DANS-KNAW/easy-ingest#staged-digital-object-set
+[Digital Object Configuration]: https://github.com/DANS-KNAW/easy-ingest#digital-object-configuration-file
 [EASY Metadata]: https://easy.dans.knaw.nl/schemas/md/emd/2013/11/emd.xsd
 [DCTERMS format]: http://dublincore.org/documents/dcmi-terms/#terms-format
 [MIME Type]: https://en.wikipedia.org/wiki/MIME
