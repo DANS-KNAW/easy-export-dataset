@@ -25,7 +25,18 @@ same dataset are replaced by the appropriate SDO-name.
 ARGUMENTS
 ---------
 
-<!-- Paste here from command line -->
+     -p, --fcrepo-password  <arg>   Password for fcrepo-user
+     -f, --fcrepo-server  <arg>     URL of Fedora Commons Repository Server to
+                                    connect to
+     -u, --fcrepo-user  <arg>       User to connect to fcrepo-server
+         --help                     Show help message
+         --version                  Show version of this program
+   
+    trailing arguments:
+     dataset-pid (required)                 The id of a dataset in the fedora
+                                            repository
+     staged-digital-object-set (required)   The resulting Staged Digital Object
+                                            directory that will be created.
 
 
 
@@ -44,7 +55,7 @@ INSTALLATION AND CONFIGURATION
 ### Configuration:
 
 Configuration settings must be specified in `$APPHOME/cfg/application.properties`. These include the connection 
-settings for Fedora and for the File-system RDB.
+settings for Fedora and for the File-system RDB. Command line arguments can override this configuration.
 
 
 BUILDING FROM SOURCE
