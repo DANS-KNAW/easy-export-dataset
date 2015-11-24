@@ -24,6 +24,8 @@ import org.apache.commons.configuration.PropertiesConfiguration
 import org.rogach.scallop._
 import org.slf4j.LoggerFactory
 
+import scala.util.{Success, Try}
+
 class Conf private (args: Seq[String]) extends ScallopConf(args) {
   val log = LoggerFactory.getLogger(getClass)
 
@@ -79,8 +81,7 @@ object Conf {
 
   private val log = LoggerFactory.getLogger(getClass)
 
-  def apply (args: Array[String] = "-f http://localhost:8080/fedora -u u -p p id ./doesNotExist".split(" ")
-            ): Conf =
+  def apply (args: Array[String] = Array[String]()): Conf =
     new Conf(getDefaults(args) ++ args)
 
   private def getDefaults(args: Array[String]): Seq[String] = {
@@ -91,7 +92,13 @@ object Conf {
     }
     else {
       log.info(s"defaults from ${propsFile.getAbsolutePath}")
-      filterDefaultOptions(new PropertiesConfiguration(propsFile), Conf().optionMap, args)
+      Try {
+        val validArgs = "-f http://localhost:8080/fedora -u u -p p id ./doesNotExist".split(" ")
+        filterDefaultOptions(new PropertiesConfiguration(propsFile), Conf(validArgs).optionMap, args)
+      }.recoverWith { case t: Throwable =>
+          log.warn(s"no defaults applied, could not read ${propsFile.getAbsolutePath} : ${t.getMessage}")
+          Success(Seq[String]())
+        }.get
     }
   }
 }

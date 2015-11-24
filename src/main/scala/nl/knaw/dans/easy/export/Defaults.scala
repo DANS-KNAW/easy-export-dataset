@@ -20,6 +20,7 @@ import org.apache.commons.configuration.PropertiesConfiguration
 
 import scala.collection.JavaConverters._
 
+/** Allows the end user to configure defaults for any option */
 object Defaults {
 
   /**
