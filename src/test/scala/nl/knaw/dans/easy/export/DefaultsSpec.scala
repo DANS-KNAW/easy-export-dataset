@@ -35,12 +35,12 @@ class DefaultsSpec extends FlatSpec with Matchers {
                       | """.stripMargin)
   
   "minimal args" should "be completed with defaults from a properties file" in {
-    val args = "easy-dataset:1 ./doesNotExist".split(" ")
+    val args = "easy-dataset:1 ./doesNotExist".split(" ").toSeq
     Conf(Defaults(tmpFile, optionsMap, args).get ++ args).user() shouldBe "sombody"
   }
   
   "command line values" should "have precedence over default values" in {
-    val args = "-u u easy-dataset:1 ./doesNotExist".split(" ")
+    val args = "-u u easy-dataset:1 ./doesNotExist".split(" ").toSeq
     Conf(Defaults(tmpFile, optionsMap, args).get ++ args).user() shouldBe "u"
   }
 }
