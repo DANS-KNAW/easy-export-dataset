@@ -16,23 +16,52 @@
 
 package nl.knaw.dans.easy.export
 
+import java.io.File
+
 import org.apache.commons.configuration.PropertiesConfiguration
 
 import scala.collection.JavaConverters._
+import scala.util.{Failure, Try}
 
-/** Allows the end user to configure defaults for any option */
 object Defaults {
 
   /**
-   * Gets defaults from props for options that are not in args.
-   *
-   * @param props key-value pairs: if a key is prefixed with "default."
-   *              the rest of the key should equal one of the keys in optionMap
-   * @param optionMap long option names to short keys
-   * @param args command line arguments
-   * @return key-value pairs from props for options not in args
-   */
-  def filterDefaultOptions(props: PropertiesConfiguration, optionMap: Map[String,Char], args: Seq[String]): Seq[String] = {
+    * Gets defaults from a properties file for options that are not in args.
+    * Prefixing the actual command line arguments with these defaults
+    * allows the end user to configure any default for any option.
+    *
+    * @param propsFile file with key-value pairs: if a key is prefixed with "default."
+    *                  the rest of the key should equal one of the keys in optionMap
+    * @param optionMap long option names to short keys
+    * @param args command line arguments
+    * @return key-value pairs from props for options not in args.
+    */
+  def apply(propsFile: File,
+            optionMap: Map[String, Char],
+            args: Seq[String]
+           ): Try[Seq[String]] =
+    if (!propsFile.isFile || !propsFile.canRead)
+      Failure(new Exception(s"$propsFile is not a readable file"))
+    else Try {
+      val props = new PropertiesConfiguration(propsFile)
+      apply(props, optionMap, args)
+    }
+
+  /**
+    * Gets defaults from a props for options that are not in args.
+    * Prefixing the actual command line arguments with these defaults
+    * allows the end user to configure any default for any option.
+    *
+    * @param props key-value pairs: if a key is prefixed with "default."
+    *              the rest of the key should equal one of the keys in optionMap
+    * @param optionMap long option names to short keys
+    * @param args command line arguments
+    * @return key-value pairs from props for options not in args.
+    */
+  def apply(props: PropertiesConfiguration,
+            optionMap: Map[String, Char],
+            args: Seq[String]
+           ): Seq[String] = {
 
     val longArgs = args.filter(arg => arg.matches("--.*")).map(arg => arg.replaceFirst("--",""))
     val shortArgs = args.filter(arg => arg.matches("-[^-].*")).map(arg => arg.charAt(1))

@@ -19,12 +19,10 @@ package nl.knaw.dans.easy.export
 import java.io.File
 import java.net.URL
 
-import nl.knaw.dans.easy.export.Defaults._
-import org.apache.commons.configuration.PropertiesConfiguration
 import org.rogach.scallop._
 import org.slf4j.LoggerFactory
 
-import scala.util.{Success, Try}
+import scala.util.Success
 
 class Conf private (args: Seq[String]) extends ScallopConf(args) {
   val log = LoggerFactory.getLogger(getClass)
@@ -85,20 +83,14 @@ object Conf {
     new Conf(getDefaults(args) ++ args)
 
   private def getDefaults(args: Array[String]): Seq[String] = {
+    val validArgs = "-f http://localhost:8080/fedora -u u -p p id ./doesNotExist".split(" ")
+    val optionMap = new Conf(validArgs).optionMap // using apply here would cause stack overflow!
     val propsFile = new File(System.getProperty("app.home", ""), "cfg/application.properties")
-    if (!propsFile.exists) {
-      log.info(s"system property 'app.home' not set and/or could not find ${propsFile.getAbsolutePath}")
-      Array[String]()
-    }
-    else {
-      log.info(s"defaults from ${propsFile.getAbsolutePath}")
-      Try {
-        val validArgs = "-f http://localhost:8080/fedora -u u -p p id ./doesNotExist".split(" ")
-        filterDefaultOptions(new PropertiesConfiguration(propsFile), Conf(validArgs).optionMap, args)
-      }.recoverWith { case t: Throwable =>
-          log.warn(s"no defaults applied, could not read ${propsFile.getAbsolutePath} : ${t.getMessage}")
-          Success(Seq[String]())
-        }.get
-    }
+    log.info(s"reading defaults from ${propsFile.getAbsolutePath}")
+    Defaults(propsFile, optionMap, args)
+      .recoverWith { case t: Throwable =>
+        log.warn(s"ignored defaults in ${propsFile.getAbsolutePath} : ${t.getMessage}")
+        Success(Seq[String]())
+      }.get
   }
 }
