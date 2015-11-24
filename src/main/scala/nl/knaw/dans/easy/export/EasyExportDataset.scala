@@ -23,19 +23,20 @@ import org.slf4j.LoggerFactory
 
 import scala.util.Try
 
-class EasyExportDataset {
+object EasyExportDataset {
 
   private val log = LoggerFactory.getLogger(getClass)
 
-  def main(args: Array[String]) =
+  def main(args: Array[String]): Unit =
     run(Settings(Conf(args))).recover { case t: Throwable => log.error("staging failed", t) }
 
   def run(implicit s: Settings): Try[Unit] = {
     log.info(s.toString)
-    foreachUntilFailure(s.fedora.getSubordinates(s.datasetId), (id: String) =>
-      exportObject(id)
-    )
-    exportObject(s.datasetId)
+    for {
+      _ <- exportObject(s.datasetId)
+      ids = s.fedora.getSubordinates(s.datasetId)
+      _ <- foreachUntilFailure(ids, (id: String) => exportObject(id))
+    } yield ()
   }
 
   def exportObject(objectId: String

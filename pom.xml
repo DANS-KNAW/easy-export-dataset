@@ -12,7 +12,7 @@
     <description>Export an EASY dataset to a Staged Digital Object set.</description>
     <version>1.x-SNAPSHOT</version>
     <properties>
-        <main-class>nl.knaw.dans.easy.stage.EasyStageDataset</main-class>
+        <main-class>nl.knaw.dans.easy.export.EasyExportDataset</main-class>
     </properties>
     <scm>
         <developerConnection>scm:git:https://github.com/DANS-KNAW/${project.artifactId}</developerConnection>

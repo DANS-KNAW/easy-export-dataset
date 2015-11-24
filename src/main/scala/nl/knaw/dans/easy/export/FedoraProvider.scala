@@ -26,7 +26,7 @@ import org.apache.commons.io.IOUtils
 
 import scala.collection.JavaConversions._
 import scala.io.Source.fromInputStream
-import scala.util.Try
+import scala.util.{Success, Try}
 
 case class FedoraProvider(credentials: FedoraCredentials) {
 
@@ -67,15 +67,19 @@ case class FedoraProvider(credentials: FedoraCredentials) {
 
   private def streamToLines(inputStream: InputStream
                             ): Try[Seq[String]] = {
-    val result = Try(fromInputStream(inputStream).getLines)
-    IOUtils.closeQuietly(inputStream)
-    result.map(_.toSeq)
+    try{
+      Success(fromInputStream(inputStream).getLines.toSeq)
+    }finally {
+      IOUtils.closeQuietly(inputStream)
+    }
   }
 
   private def streamToString(inputStream: InputStream
                             ): Try[String] = {
-    val result = Try(IOUtils.toString(inputStream, "UTF-8"))
-    IOUtils.closeQuietly(inputStream)
-    result
+    try{
+      Success(IOUtils.toString(inputStream, "UTF-8"))
+    }finally {
+      IOUtils.closeQuietly(inputStream)
+    }
   }
 }
