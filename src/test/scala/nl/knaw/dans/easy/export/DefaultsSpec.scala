@@ -18,34 +18,29 @@ package nl.knaw.dans.easy.export
 
 import java.io.File
 
-import nl.knaw.dans.easy.export.Defaults.filterDefaultOptions
+import scala.collection.immutable.HashMap
 import org.apache.commons.configuration.PropertiesConfiguration
-import org.apache.commons.io.FileUtils
 import org.scalatest.{FlatSpec, Matchers}
 
 class DefaultsSpec extends FlatSpec with Matchers {
 
-  val props: PropertiesConfiguration = {
-    val fileContent =
-      """default.fcrepo-server=http://localhost:8080/fedora
-        |default.fcrepo-user=somebody
-        |default.fcrepo-password=secret
-        | """.stripMargin
-    val tmpFile = new File("target/test/application.properties")
-    FileUtils.write(tmpFile, fileContent)
-    new PropertiesConfiguration(tmpFile)
+  val optionsMap = HashMap("fcrepo-user" -> 'u',
+                           "fcrepo-server" -> 's',
+                           "fcrepo-password" -> 'p')
+
+  val tmpFile = new File("target/test/application.properties")
+  writeAll(tmpFile, """default.fcrepo-server=http://localhost:8080/fedora
+                      |default.fcrepo-user=somebody
+                      |default.fcrepo-password=secret
+                      | """.stripMargin)
+  
+  "minimal args" should "be completed with defaults from a properties file" in {
+    val args = "easy-dataset:1 ./doesNotExist".split(" ")
+    Conf(Defaults(tmpFile, optionsMap, args).get ++ args).user() shouldBe "sombody"
   }
-
-  "minimal args" should "parse" in {
-
-    val conf = Conf("easy-dataset:1 ./doesNotExist".split(" "))
-    conf.datasetId.apply() shouldBe "easy-dataset:1"
-    conf.user.apply() shouldBe "somebody"
-  }
-
+  
   "command line values" should "have precedence over default values" in {
-
-    val conf = Conf("-u u easy-dataset:1 ./doesNotExist".split(" "))
-    conf.user.apply() shouldBe "u"
+    val args = "-u u easy-dataset:1 ./doesNotExist".split(" ")
+    Conf(Defaults(tmpFile, optionsMap, args).get ++ args).user() shouldBe "u"
   }
 }
