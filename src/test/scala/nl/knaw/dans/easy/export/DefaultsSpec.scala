@@ -34,13 +34,13 @@ class DefaultsSpec extends FlatSpec with Matchers {
                       |default.fcrepo-password=secret
                       | """.stripMargin)
   
-  "minimal args" should "be completed with defaults from a properties file" in {
+  "minimal args" should "retreive all default values" in {
     val args = "easy-dataset:1 ./doesNotExist".split(" ").toSeq
-    Conf(Defaults(tmpFile, optionsMap, args).get ++ args).user() shouldBe "sombody"
+    Defaults(tmpFile, optionsMap, args).get.length shouldBe 6
   }
   
-  "command line values" should "have precedence over default values" in {
-    val args = "-u u easy-dataset:1 ./doesNotExist".split(" ").toSeq
-    Conf(Defaults(tmpFile, optionsMap, args).get ++ args).user() shouldBe "u"
+  "provided options" should "retreive less defaults" in {
+    val args = "-p p easy-dataset:1 ./doesNotExist".split(" ").toSeq
+    Defaults(tmpFile, optionsMap, args).get shouldBe 2
   }
 }
