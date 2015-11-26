@@ -18,7 +18,7 @@ package nl.knaw.dans.easy
 
 import java.io.File
 
-import scala.util.{Failure, Try}
+import scala.util.{Success, Failure, Try}
 
 package object export {
 
@@ -28,20 +28,21 @@ package object export {
   /** Executes f for each T until one fails.
     * Usage: foreachUntilFailure(triedXs, (x: T) => f(x))
     * */
-  def foreachUntilFailure[T,S](triedXs: Try[Seq[T]], f: T=> Try[S]):Try[Unit] =
-    triedXs.map(xs => xs.foreach(x =>
-      f(x).recover { case t: Throwable =>
-        return Failure(t)
-      }
-    )).recoverWith { case t: Throwable =>
-        Failure(new Exception(s"foreachUntilFailure failed on $triedXs",t))
+  def foreachUntilFailure[T,S](xs: Seq[T], f: T=> Try[S]):Try[Unit] =
+    {
+      xs.foreach(x =>
+        f(x).recover { case t: Throwable =>
+          return Failure(t)
+        }
+      )
+      Success(Unit)
     }
 }
 
 /** Work in progress */
-trait Something {
+trait Something[T] {
 
-  class LoopWrapper[T, S](val leftSideValue: Try[Seq[T]]) {
+  class LoopWrapper[S](val leftSideValue: Try[Seq[T]]) {
     // TODO complete usage change to triedXs.foreachUntilFailure(...)".
     // Inspired by the CustomMatchers commonly applied for tests,
     // actually spied in Matchers.AnyShouldWrapper

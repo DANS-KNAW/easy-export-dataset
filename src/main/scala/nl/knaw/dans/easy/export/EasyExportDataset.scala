@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.export
 
 import java.io.File
 
-import com.yourmediashelf.fedora.generated.management.DatastreamProfile
+import com.yourmediashelf.fedora.generated.access.DatastreamType
 import org.slf4j.LoggerFactory
 
 import scala.util.Try
@@ -31,23 +31,27 @@ object EasyExportDataset {
     run(Settings(Conf(args))).recover { case t: Throwable => log.error("staging failed", t) }
 
   def run(implicit s: Settings): Try[Unit] = {
+    val function = (id: String) => exportObject(id)
     log.info(s.toString)
     for {
-      _ <- exportObject(s.datasetId)
-      ids = s.fedora.getSubordinates(s.datasetId)
-      _ <- foreachUntilFailure(ids, (id: String) => exportObject(id))
+      _   <- Try(s.sdoSet.mkdir())
+      _   <- exportObject(s.datasetId)
+      ids <- s.fedora.getSubordinates(s.datasetId)
+      _   <- foreachUntilFailure(ids, function)
     } yield ()
   }
 
   def exportObject(objectId: String
                   )(implicit s: Settings): Try[Unit] = {
     val sdoDir = new File(s.sdoSet, s"$objectId".replaceAll("[^0-9a-zA-Z]", "_"))
+    val function = (dsp: DatastreamType) => exportDatastream(objectId, sdoDir, dsp.getDsid)
     log.info(s"exporting $objectId to $sdoDir")
-    // TODO fo.xml / cfg.json
-    val triedDsps = s.fedora.getDatastreamProfiles(objectId).filter(_ != "RELS_EXT")
-    foreachUntilFailure(triedDsps, (dsp: DatastreamProfile) =>
-      exportDatastream(objectId, sdoDir, dsp.getDsID)
-    )
+    for {
+      _           <- Try(sdoDir.mkdir())
+      datastreams <- s.fedora.getDatastreams(objectId)
+      _           <- foreachUntilFailure(datastreams.filter(_.getDsid != "RELS-EXT"), function)
+      // TODO fo.xml / cfg.json
+    } yield ()
   }
 
   def exportDatastream(objectId:String,
@@ -58,7 +62,7 @@ object EasyExportDataset {
     log.info(s"exporting datastream to $exportFile")
     for {
       content <- s.fedora.disseminateDatastream(objectId,datastreamID)
-      _ <- writeAll(exportFile,content)
+      _       <- writeAll(exportFile,content)
     } yield ()
   }
 }

@@ -21,7 +21,8 @@ import java.io.InputStream
 import com.yourmediashelf.fedora.client.FedoraClient._
 import com.yourmediashelf.fedora.client.request.{FedoraRequest, RiSearch}
 import com.yourmediashelf.fedora.client.{FedoraClient, FedoraCredentials}
-import com.yourmediashelf.fedora.generated.management.DatastreamProfile
+import com.yourmediashelf.fedora.generated.access.DatastreamType
+import org.apache.commons.io.IOUtils
 
 import scala.collection.JavaConversions._
 import scala.io.Source.fromInputStream
@@ -58,15 +59,15 @@ case class FedoraProvider(credentials: FedoraCredentials) {
       content  <- streamToString(is)
     } yield content
 
-  def getDatastreamProfiles(objectId: String
-                           ): Try[Seq[DatastreamProfile]] =
+  def getDatastreams(objectId: String
+                    ): Try[Seq[DatastreamType]] =
     for {
-      response <- Try{getDatastreams(objectId).execute}
-      profiles <- Try{response.getDatastreamProfiles.toSeq}
-    } yield profiles
+      response <- Try{listDatastreams(objectId).execute}
+      profiles <- Try{response.getDatastreams}
+    } yield profiles.toSeq
 
   private def streamToLines(inputStream: InputStream
-                            ): Try[Seq[String]] = {
+                           ): Try[Seq[String]] = {
     try{
       Success(fromInputStream(inputStream).getLines.toSeq)
     }finally {
@@ -82,8 +83,7 @@ case class FedoraProvider(credentials: FedoraCredentials) {
     try{
       Success(fromInputStream(inputStream).mkString)
     }finally {
-      // wrapped in a try to not stumble over future 'enhancements' that do close at EOF
-      Try(inputStream.close())
+      IOUtils.closeQuietly(inputStream)
     }
   }
 }
