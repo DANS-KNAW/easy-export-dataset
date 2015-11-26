@@ -22,6 +22,8 @@ import scala.collection.immutable.HashMap
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalatest.{FlatSpec, Matchers}
 
+import scala.collection.mutable
+
 class DefaultsSpec extends FlatSpec with Matchers {
 
   val optionsMap = HashMap("fcrepo-user" -> 'u',
@@ -29,18 +31,31 @@ class DefaultsSpec extends FlatSpec with Matchers {
                            "fcrepo-password" -> 'p')
 
   val tmpFile = new File("target/test/application.properties")
+  tmpFile.getParentFile.mkdirs()
   writeAll(tmpFile, """default.fcrepo-server=http://localhost:8080/fedora
                       |default.fcrepo-user=somebody
                       |default.fcrepo-password=secret
                       | """.stripMargin)
   
   "minimal args" should "retreive all default values" in {
-    val args = "easy-dataset:1 ./doesNotExist".split(" ").toSeq
+    val args = Seq[String]()
     Defaults(tmpFile, optionsMap, args).get.length shouldBe 6
   }
   
   "provided options" should "retreive less defaults" in {
-    val args = "-p p easy-dataset:1 ./doesNotExist".split(" ").toSeq
-    Defaults(tmpFile, optionsMap, args).get shouldBe 2
+    val args = "-pp -u u --fcrepo-server s".split(" ")
+    Defaults(tmpFile, optionsMap, args).get.length shouldBe 0
+  }
+
+  "Houston" should "have a problem (with this example)" in {
+    // FIXME long names can get mixed up with a short name with attached value
+    val optionsMap = HashMap(
+      "fcrepo-user" -> 'u',
+      "fcrepo-server" -> 's',
+      "fcrepo-password" -> 'f'
+    )
+    val args = "-pp --fcrepo-server s".split(" ")
+    Defaults(tmpFile, optionsMap, args).get shouldBe
+      mutable.ArraySeq("--fcrepo-user", "somebody", "--fcrepo-password", "secret")
   }
 }
