@@ -30,8 +30,12 @@ package object export {
     * */
   def foreachUntilFailure[T,S](triedXs: Try[Seq[T]], f: T=> Try[S]):Try[Unit] =
     triedXs.map(xs => xs.foreach(x =>
-      f(x).recover { case t: Throwable => return Failure(t) }
-    ))
+      f(x).recover { case t: Throwable =>
+        return Failure(t)
+      }
+    )).recoverWith { case t: Throwable =>
+        Failure(new Exception(s"foreachUntilFailure failed on $triedXs",t))
+    }
 }
 
 /** Work in progress */
@@ -46,6 +50,8 @@ trait Something {
     // Though currently not required perhaps somehow change Try[Unit] into Try[Seq[S]]?
       leftSideValue.map(xs => xs.foreach(x =>
         f(x).recover { case t: Throwable => return Failure(t) }
-      ))
+      )).recoverWith { case t: Throwable =>
+        Failure(new Exception(s"foreachUntilFailure failed on $leftSideValue",t))
+      }
   }
 }

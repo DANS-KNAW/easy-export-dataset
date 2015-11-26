@@ -22,7 +22,6 @@ import com.yourmediashelf.fedora.client.FedoraClient._
 import com.yourmediashelf.fedora.client.request.{FedoraRequest, RiSearch}
 import com.yourmediashelf.fedora.client.{FedoraClient, FedoraCredentials}
 import com.yourmediashelf.fedora.generated.management.DatastreamProfile
-import org.apache.commons.io.IOUtils
 
 import scala.collection.JavaConversions._
 import scala.io.Source.fromInputStream
@@ -37,10 +36,11 @@ case class FedoraProvider(credentials: FedoraCredentials) {
   )
   override def toString = s"${super.toString} ($credentials)"
 
-  def getSubordinates(datasetId : String) : Try[Seq[String]] = search( s"""
-    |PREFIX dans: <http://dans.knaw.nl/ontologies/relations#>
-    |SELECT ?s WHERE {?s dans:isSubordinateTo <info:fedora/$datasetId> . }
-    |""".stripMargin).map(_.tail.map(_.split("/").last))
+  def getSubordinates(datasetId : String) : Try[Seq[String]] =
+    search( s"""
+               |PREFIX dans: <http://dans.knaw.nl/ontologies/relations#>
+               |SELECT ?s WHERE {?s dans:isSubordinateTo <info:fedora/$datasetId> . }
+               |""".stripMargin).map(_.tail.map(_.split("/").last))
 
   private def search(query: String): Try[Seq[String]] =
     for {
@@ -70,16 +70,20 @@ case class FedoraProvider(credentials: FedoraCredentials) {
     try{
       Success(fromInputStream(inputStream).getLines.toSeq)
     }finally {
-      IOUtils.closeQuietly(inputStream)
+      // TODO IOUtils.closeQuietly(inputStream)
+      // causes "java.io.IOException: stream is closed" in foreachUntilFailure
+      // but no one magically closes the stream
+      // not very important as long as we export only one dataset
     }
   }
 
   private def streamToString(inputStream: InputStream
                             ): Try[String] = {
     try{
-      Success(IOUtils.toString(inputStream, "UTF-8"))
+      Success(fromInputStream(inputStream).mkString)
     }finally {
-      IOUtils.closeQuietly(inputStream)
+      // wrapped in a try to not stumble over future 'enhancements' that do close at EOF
+      Try(inputStream.close())
     }
   }
 }
