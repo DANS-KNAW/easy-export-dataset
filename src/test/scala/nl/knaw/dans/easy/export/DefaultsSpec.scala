@@ -57,5 +57,7 @@ class DefaultsSpec extends FlatSpec with Matchers {
     val args = "-pp --fcrepo-server s".split(" ")
     Defaults(tmpFile, optionsMap, args).get shouldBe
       mutable.ArraySeq("--fcrepo-user", "somebody", "--fcrepo-password", "secret")
+
+    /testing build failure
   }
 }
