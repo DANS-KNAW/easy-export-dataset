@@ -40,22 +40,21 @@ package object export {
       )
       Success(Unit)
     }
-}
 
-/** Work in progress */
-trait Something[T] {
+  case class RichSeq[T](self: Seq[T]) extends Seq[T] {
 
-  class LoopWrapper[S](val leftSideValue: Try[Seq[T]]) {
-    // TODO complete usage change to triedXs.foreachUntilFailure(...)".
-    // Inspired by the CustomMatchers commonly applied for tests,
-    // actually spied in Matchers.AnyShouldWrapper
-    // but how to proceed?
-    def foreachUntilFailure(f: T => Try[S]): Try[Unit] =
-    // Though currently not required perhaps somehow change Try[Unit] into Try[Seq[S]]?
-      leftSideValue.map(xs => xs.foreach(x =>
+    // TODO apply the magic of org.scalatest.Matchers.AnyShouldWrapper.should
+    // so we can get arround the constructor
+
+    def foreachUntilFailure[S](f: T => Try[S]): Try[Unit] = {
+      self.foreach { x =>
         f(x).recover { case t: Throwable => return Failure(t) }
-      )).recoverWith { case t: Throwable =>
-        Failure(new Exception(s"foreachUntilFailure failed on $leftSideValue",t))
       }
+      Success(Unit)
+    }
+
+    override def length = self.length
+    override def apply(idx: Int): T = self.apply(idx)
+    override def iterator: Iterator[T] = self.iterator
   }
 }

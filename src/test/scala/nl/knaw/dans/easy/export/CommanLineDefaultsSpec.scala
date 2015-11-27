@@ -46,7 +46,7 @@ class CommanLineDefaultsSpec extends FlatSpec with Matchers {
   "provided options" should "retreive less defaults" in {
     val args = "-pp -u u --fcrepo-server s".split(" ")
     CommandLineDefaults(tmpFile, optionsMap).get
-      .getOmittedOptions(args).length shouldBe 0
+      .getOmittedOptions(args).length should be(0)// 0
   }
 
   "a short key identical to the start of a long key" should "not cause confusion" in {

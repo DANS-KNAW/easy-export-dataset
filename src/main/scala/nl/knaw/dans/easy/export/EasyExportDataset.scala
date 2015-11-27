@@ -27,33 +27,33 @@ object EasyExportDataset {
 
   private val log = LoggerFactory.getLogger(getClass)
 
-  def main(args: Array[String]): Unit =
-    {
-      if (Conf.defaultOptions.isFailure)
-        log.warn(s"no defaults : ${Conf.defaultOptions.failed.get.getMessage}")
-      run(Settings(Conf(args))).recover { case t: Throwable => log.error("staging failed", t) }
-    }
+  def main(args: Array[String]): Unit = {
+    if (Conf.defaultOptions.isFailure)
+      log.warn(s"No defaults : ${Conf.defaultOptions.failed.get.getMessage}")
+    run(Settings(Conf(args))).recover { case t: Throwable => log.error("staging failed", t) }
+  }
 
   def run(implicit s: Settings): Try[Unit] = {
-    val function = (id: String) => exportObject(id)
+    val callExportObject = (id: String) => exportObject(id)
     log.info(s.toString)
     for {
       _   <- Try(s.sdoSet.mkdirs())
       _   <- exportObject(s.datasetId)
-      ids <- s.fedora.getSubordinates(s.datasetId)
-      _   <- foreachUntilFailure(ids, function)
+      ids <- s.fedora.getSubordinates(s.datasetId).map(RichSeq(_))
+      _   <- ids.foreachUntilFailure(callExportObject)
     } yield ()
   }
 
   def exportObject(objectId: String
                   )(implicit s: Settings): Try[Unit] = {
-    val sdoDir = new File(s.sdoSet, s"$objectId".replaceAll("[^0-9a-zA-Z]", "_"))
-    val function = (dsp: DatastreamType) => exportDatastream(objectId, sdoDir, dsp.getDsid)
+    val sdoDir = new File(s.sdoSet, objectId.replaceAll("[^0-9a-zA-Z]", "_"))
+    val callExportDatastream = (dsp: DatastreamType) => exportDatastream(objectId, sdoDir, dsp.getDsid)
     log.info(s"exporting $objectId to $sdoDir")
     for {
-      _           <- Try(sdoDir.mkdir())
-      datastreams <- s.fedora.getDatastreams(objectId)
-      _           <- foreachUntilFailure(datastreams.filter(_.getDsid != "RELS-EXT"), function)
+      _              <- Try(sdoDir.mkdir())
+      allDatastreams <- s.fedora.getDatastreams(objectId)
+      mostDatastreams = RichSeq(allDatastreams.filter(_.getDsid != "RELS-EXT"))
+      _              <- mostDatastreams.foreachUntilFailure(callExportDatastream)
       // TODO fo.xml / cfg.json
     } yield ()
   }
