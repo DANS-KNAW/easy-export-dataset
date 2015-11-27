@@ -32,10 +32,10 @@ class CommanLineDefaultsSpec extends FlatSpec with Matchers {
 
   val tmpFile = new File("target/test/application.properties")
   tmpFile.getParentFile.mkdirs()
-  honestWrite(tmpFile, """default.fcrepo-server=http://localhost:8080/fedora
+  write(tmpFile, """default.fcrepo-server=http://localhost:8080/fedora
                       |default.fcrepo-user=somebody
                       |default.fcrepo-password=secret
-                      | """.stripMargin)
+                      | """.stripMargin.getBytes)
   
   "minimal args" should "retreive all default values" in {
     val args = Seq[String]()

@@ -16,7 +16,9 @@
 
 package nl.knaw.dans.easy
 
-import java.io.File
+import java.io.{InputStream, FileOutputStream, File}
+
+import org.apache.commons.io.IOUtils
 
 import scala.util.{Success, Failure, Try}
 
@@ -25,27 +27,27 @@ package object export {
   def invert[T1,T2] (m: Map[T1,T2]): Map[T2,T1] =
     m.map{case (k,v) => (v,k)}
 
-  def honestWrite(f: File, s: String): Try[Unit] =
-    Try{scala.tools.nsc.io.File(f).writeAll(s)}
+  def write(f: File, bytes: Array[Byte]
+           ): Try[Unit] =
+    Try{IOUtils.write(bytes,new FileOutputStream(f))}
 
-  /** Executes f for each T until one fails.
-    * Usage: foreachUntilFailure(triedXs, (x: T) => f(x))
-    * */
-  def foreachUntilFailure[T,S](xs: Seq[T], f: T=> Try[S]):Try[Unit] =
-    {
-      xs.foreach(x =>
-        f(x).recover { case t: Throwable =>
-          return Failure(t)
-        }
-      )
-      Success(Unit)
+  def read(inputStream: InputStream
+          ): Success[Array[Byte]] = {
+    try{
+      Success(IOUtils.toByteArray(inputStream))
+    }finally {
+      IOUtils.closeQuietly(inputStream)
     }
+  }
 
   case class RichSeq[T](self: Seq[T]) extends Seq[T] {
 
     // TODO apply the magic of org.scalatest.Matchers.AnyShouldWrapper.should
     // so we can get arround the constructor
 
+    /** Executes f for each T until one fails.
+      * Usage: foreachUntilFailure(triedXs, (x: T) => f(x))
+      * */
     def foreachUntilFailure[S](f: T => Try[S]): Try[Unit] = {
       self.foreach { x =>
         f(x).recover { case t: Throwable => return Failure(t) }

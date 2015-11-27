@@ -41,6 +41,7 @@ object EasyExportDataset {
       _   <- exportObject(s.datasetId)
       ids <- s.fedora.getSubordinates(s.datasetId).map(RichSeq(_))
       _   <- ids.foreachUntilFailure(callExportObject)
+      _    = log.info(s"exported ${(s.datasetId +: ids).mkString(", ")}")
     } yield ()
   }
 
@@ -66,7 +67,7 @@ object EasyExportDataset {
     log.info(s"exporting datastream to $exportFile")
     for {
       content <- s.fedora.disseminateDatastream(objectId,datastreamID)
-      _       <- honestWrite(exportFile,content)
+      _       <- write(exportFile,content)
     } yield ()
   }
 }

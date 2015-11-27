@@ -16,17 +16,13 @@
 
 package nl.knaw.dans.easy.export
 
-import java.io.InputStream
-
 import com.yourmediashelf.fedora.client.FedoraClient._
 import com.yourmediashelf.fedora.client.request.{FedoraRequest, RiSearch}
 import com.yourmediashelf.fedora.client.{FedoraClient, FedoraCredentials}
 import com.yourmediashelf.fedora.generated.access.DatastreamType
-import org.apache.commons.io.IOUtils
 
 import scala.collection.JavaConversions._
-import scala.io.Source.fromInputStream
-import scala.util.{Success, Try}
+import scala.util.Try
 
 case class FedoraProvider(credentials: FedoraCredentials) {
 
@@ -47,16 +43,16 @@ case class FedoraProvider(credentials: FedoraCredentials) {
     for {
       response <- Try {new RiSearch(query).lang("sparql").format("csv").execute()}
       is        = response.getEntityInputStream
-      lines    <- streamToLines(is)
+      lines    <- read(is).map(new String(_).split("\n").toSeq)
     } yield lines
 
   def disseminateDatastream(objectId: String,
                             streamId: String
-                           ): Try[String] =
+                           ): Try[Array[Byte]] =
     for {
       response <- Try {getDatastreamDissemination(objectId, streamId).execute()}
       is        = response.getEntityInputStream
-      content  <- streamToString(is)
+      content  <- read(is)
     } yield content
 
   def getDatastreams(objectId: String
@@ -65,25 +61,4 @@ case class FedoraProvider(credentials: FedoraCredentials) {
       response <- Try{listDatastreams(objectId).execute}
       profiles <- Try{response.getDatastreams}
     } yield profiles.toSeq
-
-  private def streamToLines(inputStream: InputStream
-                           ): Try[Seq[String]] = {
-    try{
-      Success(fromInputStream(inputStream).getLines.toSeq)
-    }finally {
-      // TODO IOUtils.closeQuietly(inputStream)
-      // causes "java.io.IOException: stream is closed" in foreachUntilFailure
-      // but no one magically closes the stream
-      // not very important as long as we export only one dataset
-    }
-  }
-
-  private def streamToString(inputStream: InputStream
-                            ): Try[String] = {
-    try{
-      Success(fromInputStream(inputStream).mkString)
-    }finally {
-      IOUtils.closeQuietly(inputStream)
-    }
-  }
 }
