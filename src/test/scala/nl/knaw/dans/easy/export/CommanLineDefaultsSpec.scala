@@ -24,7 +24,7 @@ import org.scalatest.{FlatSpec, Matchers}
 
 import scala.collection.mutable
 
-class DefaultsSpec extends FlatSpec with Matchers {
+class CommanLineDefaultsSpec extends FlatSpec with Matchers {
 
   val optionsMap = HashMap("fcrepo-user" -> 'u',
                            "fcrepo-server" -> 's',
@@ -32,30 +32,31 @@ class DefaultsSpec extends FlatSpec with Matchers {
 
   val tmpFile = new File("target/test/application.properties")
   tmpFile.getParentFile.mkdirs()
-  writeAll(tmpFile, """default.fcrepo-server=http://localhost:8080/fedora
+  honestWrite(tmpFile, """default.fcrepo-server=http://localhost:8080/fedora
                       |default.fcrepo-user=somebody
                       |default.fcrepo-password=secret
                       | """.stripMargin)
   
   "minimal args" should "retreive all default values" in {
     val args = Seq[String]()
-    Defaults(tmpFile, optionsMap, args).get.length shouldBe 6
-  }
-  
-  "provided options" should "retreive less defaults" in {
-    val args = "-pp -u u --fcrepo-server s".split(" ")
-    Defaults(tmpFile, optionsMap, args).get.length shouldBe 0
+    CommandLineDefaults(tmpFile, optionsMap).get
+      .getOmittedOptions(args).length shouldBe 6
   }
 
-  "Houston" should "have a problem (with this example)" in {
-    // FIXME long names can get mixed up with a short name with attached value
+  "provided options" should "retreive less defaults" in {
+    val args = "-pp -u u --fcrepo-server s".split(" ")
+    CommandLineDefaults(tmpFile, optionsMap).get
+      .getOmittedOptions(args).length shouldBe 0
+  }
+
+  "a short key identical to the start of a long key" should "not cause confusion" in {
     val optionsMap = HashMap(
       "fcrepo-user" -> 'u',
       "fcrepo-server" -> 's',
       "fcrepo-password" -> 'f'
     )
-    val args = "-pp --fcrepo-server s".split(" ")
-    Defaults(tmpFile, optionsMap, args).get shouldBe
-      mutable.ArraySeq("--fcrepo-user", "somebody", "--fcrepo-password", "secret")
+    val args = "-uu --fcrepo-server s".split(" ")
+    CommandLineDefaults(tmpFile, optionsMap).get
+      .getOmittedOptions(args).length shouldBe 2
   }
 }

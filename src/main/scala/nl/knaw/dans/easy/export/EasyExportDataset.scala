@@ -28,13 +28,17 @@ object EasyExportDataset {
   private val log = LoggerFactory.getLogger(getClass)
 
   def main(args: Array[String]): Unit =
-    run(Settings(Conf(args))).recover { case t: Throwable => log.error("staging failed", t) }
+    {
+      if (Conf.defaultOptions.isFailure)
+        log.warn(s"no defaults : ${Conf.defaultOptions.failed.get.getMessage}")
+      run(Settings(Conf(args))).recover { case t: Throwable => log.error("staging failed", t) }
+    }
 
   def run(implicit s: Settings): Try[Unit] = {
     val function = (id: String) => exportObject(id)
     log.info(s.toString)
     for {
-      _   <- Try(s.sdoSet.mkdir())
+      _   <- Try(s.sdoSet.mkdirs())
       _   <- exportObject(s.datasetId)
       ids <- s.fedora.getSubordinates(s.datasetId)
       _   <- foreachUntilFailure(ids, function)
@@ -62,7 +66,7 @@ object EasyExportDataset {
     log.info(s"exporting datastream to $exportFile")
     for {
       content <- s.fedora.disseminateDatastream(objectId,datastreamID)
-      _       <- writeAll(exportFile,content)
+      _       <- honestWrite(exportFile,content)
     } yield ()
   }
 }

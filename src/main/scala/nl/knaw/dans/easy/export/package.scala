@@ -22,7 +22,10 @@ import scala.util.{Success, Failure, Try}
 
 package object export {
 
-  def writeAll (f: File, s: String): Try[Unit] =
+  def invert[T1,T2] (m: Map[T1,T2]): Map[T2,T1] =
+    m.map{case (k,v) => (v,k)}
+
+  def honestWrite(f: File, s: String): Try[Unit] =
     Try{scala.tools.nsc.io.File(f).writeAll(s)}
 
   /** Executes f for each T until one fails.

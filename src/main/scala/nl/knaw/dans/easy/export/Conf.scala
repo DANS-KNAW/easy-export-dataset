@@ -22,8 +22,6 @@ import java.net.URL
 import org.rogach.scallop._
 import org.slf4j.LoggerFactory
 
-import scala.util.Success
-
 class Conf private (args: Seq[String]) extends ScallopConf(args) {
   val log = LoggerFactory.getLogger(getClass)
 
@@ -39,16 +37,10 @@ class Conf private (args: Seq[String]) extends ScallopConf(args) {
             |Options:
             |""".stripMargin)
 
-  val shouldNotExist = singleArgConverter[File](conv = {f =>
+  val mustNotExist = singleArgConverter[File](conv = { f =>
     if (new File(f).exists()) {
       log.error(s"$f allready exists")
       throw new IllegalArgumentException()
-    } else {
-      val parent = new File(f).getParentFile
-      if (!parent.isDirectory) {
-        log.error(s"$parent is not an existing directory")
-        throw new IllegalArgumentException()
-      }
     }
     new File(f)
   })
@@ -67,30 +59,23 @@ class Conf private (args: Seq[String]) extends ScallopConf(args) {
   val sdoSet = trailArg[File](
     name = "staged-digital-object-set",
     descr = "The resulting Staged Digital Object directory that will be created.",
-    required = true)(shouldNotExist)
+    required = true)(mustNotExist)
 
   /** long option names to explicitly defined short names */
   val optionMap = builder.opts
-    .withFilter(opt => opt.requiredShortNames.nonEmpty)
+    .withFilter(_.requiredShortNames.nonEmpty)
     .map(opt => (opt.name, opt.requiredShortNames.head)).toMap
 }
 
 object Conf {
 
-  private val log = LoggerFactory.getLogger(getClass)
+  val dummyInstance = new Conf("-f http: -u u -p p id ./DirThatDoesNotExist".split(" "))
+  val defaultOptions = CommandLineDefaults(dummyInstance.optionMap)
 
   def apply (args: Array[String] = Array[String]()): Conf =
-    new Conf(getDefaults(args) ++ args)
+    new Conf(getDefaultsForOmittedOptions(args) ++ args)
 
-  private def getDefaults(args: Array[String]): Seq[String] = {
-    val validArgs = "-f http://localhost:8080/fedora -u u -p p id ./doesNotExist".split(" ")
-    val optionMap = new Conf(validArgs).optionMap // using apply here would cause stack overflow!
-    val propsFile = new File(System.getProperty("app.home", ""), "cfg/application.properties")
-    log.info(s"reading defaults from ${propsFile.getAbsolutePath}")
-    Defaults(propsFile, optionMap, args)
-      .recoverWith { case t: Throwable =>
-        log.warn(s"ignored defaults in ${propsFile.getAbsolutePath} : ${t.getMessage}")
-        Success(Seq[String]())
-      }.get
-  }
+  private def getDefaultsForOmittedOptions(args: Array[String]): Seq[String] =
+    if (defaultOptions.isFailure) Seq[String]()
+    else defaultOptions.get.getOmittedOptions(args)
 }

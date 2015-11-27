@@ -29,7 +29,7 @@ class ConfSpec extends FlatSpec with Matchers {
   val helpInfo = {
     val mockedStdOut = new ByteArrayOutputStream()
     Console.withOut(mockedStdOut) {
-      Conf().printHelp()
+      Conf.dummyInstance.printHelp()
     }
     mockedStdOut.toString
   }
@@ -51,7 +51,7 @@ class ConfSpec extends FlatSpec with Matchers {
   }
 
   "distributed default properties" should "be valid options" in {
-    val optKeys = Conf().builder.opts.map(opt => opt.name).toArray
+    val optKeys = Conf.dummyInstance.builder.opts.map(opt => opt.name).toArray
     val propKeys = new PropertiesConfiguration("src/main/assembly/dist/cfg/application.properties")
       .getKeys.asScala.withFilter(key => key.startsWith("default.") )
 
