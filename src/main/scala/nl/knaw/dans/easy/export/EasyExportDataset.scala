@@ -30,25 +30,32 @@ object EasyExportDataset {
   def main(args: Array[String]): Unit = {
     if (Conf.defaultOptions.isFailure)
       log.warn(s"No defaults : ${Conf.defaultOptions.failed.get.getMessage}")
-    run(Settings(Conf(args))).recover { case t: Throwable => log.error("staging failed", t) }
+    (for {
+      s <- Settings(Conf(args))
+      ids <- run(s)
+      _ = log.info(s"STAGED ${ids.mkString(", ")}")
+    } yield ())
+      .recover { case t: Throwable =>
+        log.error("STAGING FAILED", t)
+      }
   }
 
-  def run(implicit s: Settings): Try[Unit] = {
-    val callExportObject = (id: String) => exportObject(id)
+  def run(implicit s: Settings): Try[Seq[String]] = {
     log.info(s.toString)
+    val callExportObject = (id: String) => exportObject(id)
     for {
-      _   <- Try(s.sdoSet.mkdirs())
-      _   <- exportObject(s.datasetId)
-      ids <- s.fedora.getSubordinates(s.datasetId).map(RichSeq(_))
-      _   <- ids.foreachUntilFailure(callExportObject)
-      _    = log.info(s"exported ${(s.datasetId +: ids).mkString(", ")}")
-    } yield ()
+      _      <- Try(s.sdoSet.mkdirs())
+      subIds <- s.fedora.getSubordinates(s.datasetId).map(RichSeq(_))
+      allIds  = s.datasetId +: subIds
+      _      <- exportObject(s.datasetId)
+      _      <- subIds.foreachUntilFailure(callExportObject)
+    } yield allIds
   }
 
   def exportObject(objectId: String
                   )(implicit s: Settings): Try[Unit] = {
     val sdoDir = new File(s.sdoSet, objectId.replaceAll("[^0-9a-zA-Z]", "_"))
-    val callExportDatastream = (dsp: DatastreamType) => exportDatastream(objectId, sdoDir, dsp.getDsid)
+    val callExportDatastream = (dst: DatastreamType) => exportDatastream(objectId, sdoDir, dst)
     log.info(s"exporting $objectId to $sdoDir")
     for {
       _              <- Try(sdoDir.mkdir())
@@ -61,13 +68,13 @@ object EasyExportDataset {
 
   def exportDatastream(objectId:String,
                        sdoDir: File,
-                       datastreamID: String
+                       dst: DatastreamType
                       )(implicit s: Settings): Try[Unit]= {
-    val exportFile = new File(sdoDir, datastreamID)
-    log.info(s"exporting datastream to $exportFile")
+    val exportFile = new File(sdoDir, dst.getDsid)
+    log.info(s"exporting datastream to $exportFile (${dst.getLabel}, ${dst.getMimeType})")
     for {
-      content <- s.fedora.disseminateDatastream(objectId,datastreamID)
-      _       <- write(exportFile,content)
-    } yield ()
+      is <- s.fedora.disseminateDatastream(objectId, dst.getDsid)
+      _ <- writeAndClose(is, exportFile)
+    } yield()
   }
 }

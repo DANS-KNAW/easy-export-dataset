@@ -24,12 +24,28 @@ import scala.util.{Success, Failure, Try}
 
 package object export {
 
+  /** requirement: values are unique */
   def invert[T1,T2] (m: Map[T1,T2]): Map[T2,T1] =
-    m.map{case (k,v) => (v,k)}
+    m.map{case (key,value) => (value,key)}
 
   def write(f: File, bytes: Array[Byte]
            ): Try[Unit] =
     Try{IOUtils.write(bytes,new FileOutputStream(f))}
+
+  def writeAndClose(in: InputStream, f: File
+           ): Try[Unit] =
+    try{
+      val out = new FileOutputStream(f)
+      try{
+        IOUtils.copyLarge(in,out)
+        Success(Unit)
+      } finally {
+        IOUtils.closeQuietly(out)
+      }
+    } finally {
+      IOUtils.closeQuietly(in)
+    }
+
 
   def read(inputStream: InputStream
           ): Success[Array[Byte]] = {
@@ -46,7 +62,7 @@ package object export {
     // so we can get arround the constructor
 
     /** Executes f for each T until one fails.
-      * Usage: foreachUntilFailure(triedXs, (x: T) => f(x))
+      * Usage: RichSeq(Xs).foreachUntilFailure((x: T) => f(x))
       * */
     def foreachUntilFailure[S](f: T => Try[S]): Try[Unit] = {
       self.foreach { x =>

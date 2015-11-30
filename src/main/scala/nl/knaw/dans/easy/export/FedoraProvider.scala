@@ -16,22 +16,17 @@
 
 package nl.knaw.dans.easy.export
 
+import java.io.InputStream
+
 import com.yourmediashelf.fedora.client.FedoraClient._
 import com.yourmediashelf.fedora.client.request.{FedoraRequest, RiSearch}
 import com.yourmediashelf.fedora.client.{FedoraClient, FedoraCredentials}
 import com.yourmediashelf.fedora.generated.access.DatastreamType
 
 import scala.collection.JavaConversions._
-import scala.util.Try
+import scala.util.{Failure, Try}
 
-case class FedoraProvider(credentials: FedoraCredentials) {
-
-  FedoraRequest.setDefaultClient(
-    new FedoraClient(credentials) {
-      override def toString = s"${super.toString} ($credentials)"
-    }
-  )
-  override def toString = s"${super.toString} ($credentials)"
+case class FedoraProvider private() {
 
   def getSubordinates(datasetId : String) : Try[Seq[String]] =
     search( s"""
@@ -40,25 +35,47 @@ case class FedoraProvider(credentials: FedoraCredentials) {
                |""".stripMargin).map(_.tail.map(_.split("/").last))
 
   private def search(query: String): Try[Seq[String]] =
-    for {
+    (for {
       response <- Try {new RiSearch(query).lang("sparql").format("csv").execute()}
       is        = response.getEntityInputStream
       lines    <- read(is).map(new String(_).split("\n").toSeq)
-    } yield lines
+    } yield lines)
+      .recoverWith { case t: Throwable =>
+        Failure(new Exception(s"$this, query '$query' failed, cause: ${t.getMessage}", t))
+      }
 
   def disseminateDatastream(objectId: String,
                             streamId: String
-                           ): Try[Array[Byte]] =
-    for {
-      response <- Try {getDatastreamDissemination(objectId, streamId).execute()}
-      is        = response.getEntityInputStream
-      content  <- read(is)
-    } yield content
+                           ): Try[InputStream] =
+    Try(getDatastreamDissemination(objectId, streamId).execute())
+      .map(_.getEntityInputStream)
+      .recoverWith { case t: Throwable =>
+        Failure(new Exception(s"$this, could not get datastream $streamId of $objectId, cause: ${t.getMessage}", t))
+      }
 
   def getDatastreams(objectId: String
                     ): Try[Seq[DatastreamType]] =
-    for {
+    (for {
       response <- Try{listDatastreams(objectId).execute}
       profiles <- Try{response.getDatastreams}
-    } yield profiles.toSeq
+    } yield profiles.toSeq)
+      .recoverWith { case t: Throwable =>
+        Failure(new Exception(s"$this, could not get datastreams of $objectId, cause: ${t.getMessage}", t))
+      }
+}
+
+object FedoraProvider {
+  def apply (credentials: FedoraCredentials): Try[FedoraProvider] = {
+    Try {
+      val fedoraClient = new FedoraClient(credentials) {
+        override def toString = s"${super.toString} with $credentials"
+      }
+      FedoraRequest.setDefaultClient(fedoraClient)
+      new FedoraProvider() {
+        override def toString = s"${super.toString} with $credentials"
+      }
+    }.recoverWith{case t: Throwable =>
+      Failure(new Exception(s"could not set default fedora client with $credentials, cause: ${t.getMessage}",t))
+    }
+  }
 }
