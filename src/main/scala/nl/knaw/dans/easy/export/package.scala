@@ -21,6 +21,7 @@ import java.io.{InputStream, FileOutputStream, File}
 import org.apache.commons.io.IOUtils
 
 import scala.util.{Success, Failure, Try}
+import scala.xml._
 
 package object export {
 
@@ -44,6 +45,13 @@ package object export {
       }
     } finally {
       IOUtils.closeQuietly(in)
+    }
+
+  def readXmlAndClose (is: InputStream): Success[Elem] =
+    try{
+      Success(XML.load(is))
+    } finally {
+      IOUtils.closeQuietly(is)
     }
 
 

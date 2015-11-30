@@ -80,6 +80,12 @@
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_2.11</artifactId>
         </dependency>
+        <dependency>
+            <groupId>nl.knaw.dans.easy</groupId>
+            <artifactId>easy-stage-dataset</artifactId>
+            <!-- just for JSON an FOXML -->
+            <version>1.x-SNAPSHOT</version>
+        </dependency>
     </dependencies>
     <repositories>
         <repository>
