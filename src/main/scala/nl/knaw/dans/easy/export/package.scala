@@ -25,15 +25,18 @@ import scala.xml._
 
 package object export {
 
-  /** requirement: values are unique */
   def invert[T1,T2] (m: Map[T1,T2]): Map[T2,T1] =
     m.map{case (key,value) => (value,key)}
 
-  def write(f: File, bytes: Array[Byte]
-           ): Try[Unit] =
+
+  def toSdoDir(objectId: String)(implicit s: Settings): File =
+    new File(s.sdoSet, objectId.replaceAll("[^0-9a-zA-Z]", "_"))
+
+
+  def write(bytes: Array[Byte], f: File): Try[Unit] =
     Try{IOUtils.write(bytes,new FileOutputStream(f))}
 
-  def writeAndClose(in: InputStream, f: File
+  def copyAndClose(in: InputStream, f: File
            ): Try[Unit] =
     try{
       val out = new FileOutputStream(f)
