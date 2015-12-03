@@ -37,8 +37,7 @@ case class FedoraProvider private() {
     (for {
       response <- Try {new RiSearch(query).lang("sparql").format("csv").execute()}
       is        = response.getEntityInputStream
-      lines    <- read(is).map(new String(_).split("\n").toSeq)
-    // TODO get a potential next batch of IDs
+      lines    <- is.readAndClose.map(new String(_).split("\n").toSeq)
     } yield lines)
       .recoverWith { case t: Throwable =>
         Failure(new Exception(s"$this, query '$query' failed, cause: ${t.getMessage}", t))

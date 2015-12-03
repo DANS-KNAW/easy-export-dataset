@@ -16,6 +16,8 @@
 
 package nl.knaw.dans.easy.export
 
+import java.io.File
+
 import org.scalatest.{FlatSpec, Matchers}
 
 import scala.xml.Node
@@ -39,8 +41,12 @@ class JsonSpec extends FlatSpec with Matchers {
         </rdf:Description>
       </rdf:RDF>
 
-
-    JSON(toSdoDir("easy-file:10"), Seq[Node](), relsExt).get shouldBe
+    JSON(
+      new File (settings.sdoSet, toSdoName("easy-file:10")),
+      Seq[Node](),
+      relsExt,
+      placeHoldersFor = Seq("easy-folder:3", "easy-dataset:1")
+    ).get shouldBe
       """{
         |  "namespace":"easy-file",
         |  "datastreams":[],
@@ -106,8 +112,13 @@ class JsonSpec extends FlatSpec with Matchers {
         </foxml:datastream>
       </foxml:digitalObject>
 
-    // TODO is it correct to see the dsoSet directory in the contentFile values?
-    JSON(toSdoDir("easy-dataset:1"), foXml \ "datastream", relsExt).get shouldBe
+    // TODO dsLocation/contentFile, absolute/relative paths?
+    JSON(
+      new File(settings.sdoSet,toSdoName("easy-dataset:1")),
+      foXml \ "datastream",
+      relsExt,
+      placeHoldersFor = Seq()
+    ).get shouldBe
       """{
         |  "namespace":"easy-dataset",
         |  "datastreams":[{

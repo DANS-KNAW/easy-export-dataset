@@ -38,7 +38,8 @@ object JSON {
     */
   def apply(sdoDir: File,
             datastreams: Seq[Node],
-            relsExt: Elem
+            relsExt: Elem,
+            placeHoldersFor: Seq[String]
            )(implicit s: Settings): Try[String] = Try {
 
     val descriptionNode = (relsExt \ "Description").head
@@ -47,18 +48,17 @@ object JSON {
     pretty(render(
       ("namespace" -> objectId.replaceAll(":.*", "")) ~
         ("datastreams" -> datastreams.map(convertDatastream(_, sdoDir))) ~
-        ("relations" -> relations.map(convertRelation))
+        ("relations" -> relations.map(convertRelation(_,placeHoldersFor)))
     ))
   }.recoverWith { case t: Throwable =>
     Failure(new Exception(s"invalid RELS-EXT or fo.xml for ${sdoDir.getName}? ${t.getMessage}", t))
   }
 
-  // TODO is this exhaustive? Rather invert the test to be safe.
-  private val needsPlaceHolder = Seq[String]("easy-dataset", "easy-file", "easy-folder", "easy-dlh")
-
   private val rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 
-  private def convertRelation(n: Node)(implicit s: Settings): JsonAST.JObject = {
+  private def convertRelation(n: Node,
+                              placeHoldersFor: Seq[String]
+                             )(implicit s: Settings): JsonAST.JObject = {
     val isLiteral = {
       val a = n.attribute(rdf, "parseType")
       a.isDefined && a.get.text == "Literal"
@@ -70,13 +70,11 @@ object JSON {
     else {
       val resource = n.attribute(rdf, "resource").get.head.text
       val objectID = resource.replaceAll("[^/]*/", "")
-      val objectNameSpace = objectID.replaceAll(":.*", "")
-      if (needsPlaceHolder.contains(objectNameSpace))
-        ("predicate" -> s"${n.namespace}${n.label}") ~
-          ("objectSDO" -> toSdoDir(objectID).getName)
+      if (placeHoldersFor.contains(objectID)) {
+        ("predicate" -> s"${n.namespace}${n.label}") ~ ("objectSDO" -> toSdoName(objectID))
+      }
       else
-        ("predicate" -> s"${n.namespace}${n.label}") ~
-          ("object" -> resource)
+        ("predicate" -> s"${n.namespace}${n.label}") ~ ("object" -> resource)
     }
   }
 
