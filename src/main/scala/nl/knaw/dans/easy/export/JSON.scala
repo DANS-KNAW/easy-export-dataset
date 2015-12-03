@@ -17,22 +17,29 @@ package nl.knaw.dans.easy.export
 
 import java.io.File
 
-import com.yourmediashelf.fedora.generated.access.DatastreamType
 import org.json4s.JsonAST
 import org.json4s.JsonAST.JObject
 import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods._
 
 import scala.util.{Failure, Try}
-import scala.xml.{Node, Elem}
+import scala.xml.{Elem, Node}
 
 object JSON {
 
+  /** Creates a JSON structure while replacing some fedora ids with SDO directories on the flight.
+    * 'Some' being objects of an EASY-dataset.
+    *
+    * @param sdoDir a directory for the staged digital object
+    * @param datastreams subsection of foXML
+    * @param relsExt the content of the RESL-EXT datastream
+    * @param s configuration required to construct an sdoDir from a fedora-id
+    * @return a string representation of a json object
+    */
   def apply(sdoDir: File,
-            datastreams: Seq[DatastreamType],
+            datastreams: Seq[Node],
             relsExt: Elem
            )(implicit s: Settings): Try[String] = Try {
-    // Try because .get from options and .head from sequences are not safe
 
     val descriptionNode = (relsExt \ "Description").head
     val objectId = descriptionNode.attribute(rdf, "about").get.head.text.replaceAll("[^/]*/", "")
@@ -43,7 +50,7 @@ object JSON {
         ("relations" -> relations.map(convertRelation))
     ))
   }.recoverWith { case t: Throwable =>
-    Failure(new Exception(s"invalid RELS-EXT for ${sdoDir.getName}? ${t.getMessage}", t))
+    Failure(new Exception(s"invalid RELS-EXT or fo.xml for ${sdoDir.getName}? ${t.getMessage}", t))
   }
 
   // TODO is this exhaustive? Rather invert the test to be safe.
@@ -73,20 +80,14 @@ object JSON {
     }
   }
 
-  def convertDatastream(ds: DatastreamType, sdoDir: File): JObject = {
+  def convertDatastream(ds: Node, sdoDir: File): JObject = {
     // TODO what about files stored outside fedora?
-    // TODO read the controlgroup from fedora
-    if (ds.getDsid == "EASY_FILE")
-      ("dsLocation" -> new File(sdoDir, ds.getDsid).toString) ~
-        ("dsID" -> ds.getDsid) ~
-        ("label" -> ds.getLabel) ~
-        ("mimeType" -> ds.getMimeType) ~
-        ("controlGroup" -> "R")
-    else
-      ("contentFile" -> new File(sdoDir, ds.getDsid).toString) ~
-        ("dsID" -> ds.getDsid) ~
-        ("label" -> ds.getLabel) ~
-        ("mimeType" -> ds.getMimeType) ~
-        ("controlGroup" -> (if (ds.getDsid == "ADDITIONAL_LICENSE") "M" else "X"))
+    val datastreamID = ds \@ "ID"
+    val datastreamVersion = (ds \ "datastreamVersion").last
+    ("contentFile" -> new File(sdoDir, datastreamID).toString) ~
+      ("dsID" -> datastreamID) ~
+      ("label" -> datastreamVersion \@ "LABEL") ~
+      ("mimeType" -> datastreamVersion \@ "MIMETYPE") ~
+      ("controlGroup" -> ds \@ "CONTROL_GROUP")
   }
 }

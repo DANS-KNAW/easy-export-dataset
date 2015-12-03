@@ -18,10 +18,10 @@ package nl.knaw.dans.easy.export
 
 import java.io.File
 
-import com.yourmediashelf.fedora.generated.access.DatastreamType
 import org.slf4j.LoggerFactory
 
 import scala.util.Try
+import scala.xml.Node
 
 object EasyExportDataset {
 
@@ -53,31 +53,36 @@ object EasyExportDataset {
   def exportObject(objectId: String
                   )(implicit s: Settings): Try[Unit] = {
     val sdoDir = toSdoDir(objectId)
-    val callExportDatastream = (dst: DatastreamType) => exportDatastream(objectId, sdoDir, dst)
+    val callExportDatastream = (ds: Node) => exportDatastream(objectId, sdoDir, ds)
     log.info(s"exporting $objectId to $sdoDir")
     for {
       _                  <- Try(sdoDir.mkdir())
-      allDatastreams     <- s.fedora.getDatastreams(objectId)
-      mostDatastreams     = RichSeq(allDatastreams.filter(_.getDsid != "RELS-EXT"))
+      foXmlInputStream   <- s.fedora.getFoXml(objectId)
+      foXml              <- readXmlAndClose(foXmlInputStream) // TODO replace fedora IDs with SDOs
+      _                  <- write(foXml.toString().getBytes, new File(sdoDir, "fo.xml"))
+      datastreams        <- Try(RichSeq((foXml \ "datastream").theSeq.filterNot(skip)))
       relsExtInputStream <- s.fedora.disseminateDatastream(objectId, "RELS-EXT")
       relsExtXML         <- readXmlAndClose(relsExtInputStream)
-      jsonContent        <- JSON(sdoDir, mostDatastreams, relsExtXML)
+      jsonContent        <- JSON(sdoDir, datastreams, relsExtXML)
       _                  <- write(jsonContent.getBytes, new File(sdoDir, "cfg.json"))
-      _                  <- mostDatastreams.foreachUntilFailure(callExportDatastream)
-    // TODO fo.xml
+      _                  <- datastreams.foreachUntilFailure(callExportDatastream)
     } yield ()
   }
 
+  def skip(n: Node): Boolean = Set("RELS-EXT", "AUDIT")
+    .contains(n.attribute("ID").get.head.text)// N.B: .get and .head are not safe
+
   def exportDatastream(objectId:String,
                        sdoDir: File,
-                       dst: DatastreamType
-                      )(implicit s: Settings): Try[DatastreamType]= {
-    val exportFile = new File(sdoDir, dst.getDsid)
-    log.info(s"exporting datastream to $exportFile (${dst.getLabel}, ${dst.getMimeType})")
-    for {
-      is <- s.fedora.disseminateDatastream(objectId, dst.getDsid)
-      _ <- copyAndClose(is, exportFile)
-    // TODO histories of versionable datastreams such as (additional) licenses
-    } yield dst
-  }
+                       ds: Node
+                      )(implicit s: Settings): Try[Unit]= {
+      for {
+        dsID       <- Try(ds \@ "ID")
+        exportFile = new File(sdoDir, dsID)
+        _          = log.info(s"exporting datastream $dsID to $exportFile")
+        is         <- s.fedora.disseminateDatastream(objectId, dsID)
+        _          <- copyAndClose(is, exportFile)
+      // TODO histories of versionable datastreams such as (additional) licenses
+      } yield ()
+    }
 }

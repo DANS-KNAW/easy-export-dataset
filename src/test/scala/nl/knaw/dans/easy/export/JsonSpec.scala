@@ -16,8 +16,9 @@
 
 package nl.knaw.dans.easy.export
 
-import com.yourmediashelf.fedora.generated.access.DatastreamType
 import org.scalatest.{FlatSpec, Matchers}
+
+import scala.xml.Node
 
 class JsonSpec extends FlatSpec with Matchers {
 
@@ -39,16 +40,16 @@ class JsonSpec extends FlatSpec with Matchers {
       </rdf:RDF>
 
 
-    JSON(toSdoDir("easy-file:10"), Seq[DatastreamType](), relsExt).get shouldBe
+    JSON(toSdoDir("easy-file:10"), Seq[Node](), relsExt).get shouldBe
       """{
         |  "namespace":"easy-file",
         |  "datastreams":[],
         |  "relations":[{
         |    "predicate":"http://dans.knaw.nl/ontologies/relations#isMemberOf",
-        |    "objectSDO":"./DirThatDoesNotExist/easy_folder_3"
+        |    "objectSDO":"easy_folder_3"
         |  },{
         |    "predicate":"http://dans.knaw.nl/ontologies/relations#isSubordinateTo",
-        |    "objectSDO":"./DirThatDoesNotExist/easy_dataset_1"
+        |    "objectSDO":"easy_dataset_1"
         |  },{
         |    "predicate":"info:fedora/fedora-system:def/model#hasModel",
         |    "object":"info:fedora/easy-model:EDM1FILE"
@@ -66,45 +67,71 @@ class JsonSpec extends FlatSpec with Matchers {
         </rdf:Description>
       </rdf:RDF>
 
-    val dataStreams = Seq(
-      ("DC", "view content Dublin Core Record for this object", "text/xml"),
-      ("PRSQL", "view content Permission request sequences for this dataset", "text/xml"),
-      ("EASY_ITEM_CONTAINER_MD", "view content Metadata for this item container", "text/xml"),
-      ("EMD", " view content Descriptive metadata for this dataset", "text/xml"),
-      //("RELS-EXT", "view content rels-ext", "text/xml"),
-      ("AMD", "Administrative metadata for this dataset", "text/xml")
-    ).map { case (dsId, label, mime) => val ds = new DatastreamType()
-      ds.setDsid(dsId)
-      ds.setLabel(label)
-      ds.setMimeType(mime)
-      ds
-    }
+    val foXml =
+      <foxml:digitalObject VERSION="1.1" PID="easy-dataset:1"
+                           xmlns:foxml="info:fedora/fedora-system:def/foxml#"
+                           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                           xsi:schemaLocation="info:fedora/fedora-system:def/foxml# http://www.fedora.info/definitions/1/0/foxml1-1.xsd">
+        <foxml:datastream ID="DC" STATE="A" CONTROL_GROUP="X" VERSIONABLE="false">
+          <foxml:datastreamVersion ID="DC.2" LABEL="Dublin Core Record for this object"
+                                   CREATED="2015-05-29T15:24:55.122Z" MIMETYPE="text/xml"
+                                   FORMAT_URI="http://www.openarchives.org/OAI/2.0/oai_dc/" SIZE="4089">
+          </foxml:datastreamVersion>
+        </foxml:datastream>
+        <foxml:datastream ID="PRSQL" STATE="A" CONTROL_GROUP="X" VERSIONABLE="false">
+          <foxml:datastreamVersion ID="PRSQL.3" LABEL="Permission request sequences for this dataset"
+                                   CREATED="2015-08-08T23:44:19.487Z" MIMETYPE="text/xml" SIZE="150">
+            <foxml:contentDigest TYPE="SHA-1" DIGEST="dbbbe9f7d96717b9ed383b7204fd93f410baef29"/>
+          </foxml:datastreamVersion>
+        </foxml:datastream>
+        <foxml:datastream ID="EASY_ITEM_CONTAINER_MD" STATE="A" CONTROL_GROUP="X" VERSIONABLE="false">
+          <foxml:datastreamVersion ID="EASY_ITEM_CONTAINER_MD.5" LABEL="Metadata for this item container"
+                                   CREATED="2015-08-08T23:44:19.553Z" MIMETYPE="text/xml"
+                                   FORMAT_URI="http://easy.dans.knaw.nl/easy/item-container-md/" SIZE="156">
+            <foxml:contentDigest TYPE="SHA-1" DIGEST="c40570d1cfa0bf9ab45d5d483ca6bb23b8620e98"/>
+          </foxml:datastreamVersion>
+        </foxml:datastream>
+        <foxml:datastream ID="EMD" STATE="A" CONTROL_GROUP="X" VERSIONABLE="false">
+          <foxml:datastreamVersion ID="EMD.9" LABEL="Descriptive metadata for this dataset"
+                                   CREATED="2015-08-28T13:09:53.619Z" MIMETYPE="text/xml"
+                                   FORMAT_URI="http://easy.dans.knaw.nl/easy/easymetadata/" SIZE="5676">
+            <foxml:contentDigest TYPE="SHA-1" DIGEST="b26519a65bf9fddf1a5885154f36a26850a110c1"/>
+          </foxml:datastreamVersion>
+        </foxml:datastream>
+        <foxml:datastream ID="AMD" STATE="A" CONTROL_GROUP="X" VERSIONABLE="false">
+          <foxml:datastreamVersion ID="AMD.7" LABEL="Administrative metadata for this dataset"
+                                   CREATED="2015-08-28T13:09:53.755Z" MIMETYPE="text/xml" SIZE="3381">
+            <foxml:contentDigest TYPE="SHA-1" DIGEST="72ceb7b04bb362a319d65a029ba0881e014cc8e8"/>
+          </foxml:datastreamVersion>
+        </foxml:datastream>
+      </foxml:digitalObject>
 
-    JSON(toSdoDir("easy-dataset:1"), dataStreams, relsExt).get shouldBe
+    // TODO is it correct to see the dsoSet directory in the contentFile values?
+    JSON(toSdoDir("easy-dataset:1"), foXml \ "datastream", relsExt).get shouldBe
       """{
         |  "namespace":"easy-dataset",
         |  "datastreams":[{
         |    "contentFile":"./DirThatDoesNotExist/easy_dataset_1/DC",
         |    "dsID":"DC",
-        |    "label":"view content Dublin Core Record for this object",
+        |    "label":"Dublin Core Record for this object",
         |    "mimeType":"text/xml",
         |    "controlGroup":"X"
         |  },{
         |    "contentFile":"./DirThatDoesNotExist/easy_dataset_1/PRSQL",
         |    "dsID":"PRSQL",
-        |    "label":"view content Permission request sequences for this dataset",
+        |    "label":"Permission request sequences for this dataset",
         |    "mimeType":"text/xml",
         |    "controlGroup":"X"
         |  },{
         |    "contentFile":"./DirThatDoesNotExist/easy_dataset_1/EASY_ITEM_CONTAINER_MD",
         |    "dsID":"EASY_ITEM_CONTAINER_MD",
-        |    "label":"view content Metadata for this item container",
+        |    "label":"Metadata for this item container",
         |    "mimeType":"text/xml",
         |    "controlGroup":"X"
         |  },{
         |    "contentFile":"./DirThatDoesNotExist/easy_dataset_1/EMD",
         |    "dsID":"EMD",
-        |    "label":" view content Descriptive metadata for this dataset",
+        |    "label":"Descriptive metadata for this dataset",
         |    "mimeType":"text/xml",
         |    "controlGroup":"X"
         |  },{
