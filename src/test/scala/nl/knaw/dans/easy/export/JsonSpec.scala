@@ -112,7 +112,6 @@ class JsonSpec extends FlatSpec with Matchers {
         </foxml:datastream>
       </foxml:digitalObject>
 
-    // TODO dsLocation/contentFile, absolute/relative paths?
     JSON(
       new File(settings.sdoSet,toSdoName("easy-dataset:1")),
       foXml \ "datastream",
@@ -122,31 +121,31 @@ class JsonSpec extends FlatSpec with Matchers {
       """{
         |  "namespace":"easy-dataset",
         |  "datastreams":[{
-        |    "contentFile":"./DirThatDoesNotExist/easy_dataset_1/DC",
+        |    "contentFile":"DC",
         |    "dsID":"DC",
         |    "label":"Dublin Core Record for this object",
         |    "mimeType":"text/xml",
         |    "controlGroup":"X"
         |  },{
-        |    "contentFile":"./DirThatDoesNotExist/easy_dataset_1/PRSQL",
+        |    "contentFile":"PRSQL",
         |    "dsID":"PRSQL",
         |    "label":"Permission request sequences for this dataset",
         |    "mimeType":"text/xml",
         |    "controlGroup":"X"
         |  },{
-        |    "contentFile":"./DirThatDoesNotExist/easy_dataset_1/EASY_ITEM_CONTAINER_MD",
+        |    "contentFile":"EASY_ITEM_CONTAINER_MD",
         |    "dsID":"EASY_ITEM_CONTAINER_MD",
         |    "label":"Metadata for this item container",
         |    "mimeType":"text/xml",
         |    "controlGroup":"X"
         |  },{
-        |    "contentFile":"./DirThatDoesNotExist/easy_dataset_1/EMD",
+        |    "contentFile":"EMD",
         |    "dsID":"EMD",
         |    "label":"Descriptive metadata for this dataset",
         |    "mimeType":"text/xml",
         |    "controlGroup":"X"
         |  },{
-        |    "contentFile":"./DirThatDoesNotExist/easy_dataset_1/AMD",
+        |    "contentFile":"AMD",
         |    "dsID":"AMD",
         |    "label":"Administrative metadata for this dataset",
         |    "mimeType":"text/xml",

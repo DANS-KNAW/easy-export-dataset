@@ -79,13 +79,28 @@ object JSON {
   }
 
   def convertDatastream(ds: Node, sdoDir: File): JObject = {
-    // TODO what about files stored outside fedora?
     val datastreamID = ds \@ "ID"
     val datastreamVersion = (ds \ "datastreamVersion").last
-    ("contentFile" -> new File(sdoDir, datastreamID).toString) ~
-      ("dsID" -> datastreamID) ~
-      ("label" -> datastreamVersion \@ "LABEL") ~
-      ("mimeType" -> datastreamVersion \@ "MIMETYPE") ~
-      ("controlGroup" -> ds \@ "CONTROL_GROUP")
+    val controlGroup = ds \@ "CONTROL_GROUP"
+    val checksumType = datastreamVersion.attribute("foxml", "contentDigest")
+    if (controlGroup == "R")
+      ("dsLocation" -> new File(sdoDir, datastreamID).toString) ~
+        ("dsID" -> datastreamID) ~
+        ("mimeType" -> datastreamVersion \@ "MIMETYPE") ~
+        ("controlGroup" -> controlGroup)
+    else if (checksumType.isEmpty)
+        ("contentFile" -> datastreamID) ~
+          ("dsID" -> datastreamID) ~
+          ("label" -> datastreamVersion \@ "LABEL") ~ // TODO ignored by fedora API: leave more in foxml, but what/how?
+          ("mimeType" -> datastreamVersion \@ "MIMETYPE") ~
+          ("controlGroup" -> controlGroup)
+    else
+      ("contentFile" -> datastreamID) ~
+        ("dsID" -> datastreamID) ~
+        ("label" -> datastreamVersion \@ "LABEL") ~ // TODO idem
+        ("mimeType" -> datastreamVersion \@ "MIMETYPE") ~
+        ("controlGroup" -> controlGroup) ~
+        ("checksumType" -> checksumType.head.text) ~
+        ("checksum" -> datastreamVersion \@ "DIGEST")
   }
 }

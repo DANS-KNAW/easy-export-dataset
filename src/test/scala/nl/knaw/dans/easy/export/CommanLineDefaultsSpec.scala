@@ -36,7 +36,7 @@ class CommanLineDefaultsSpec extends FlatSpec with Matchers {
     """default.fcrepo-server=http://localhost:8080/fedora
       |default.fcrepo-user=somebody
       |default.fcrepo-password=secret
-      | """.stripMargin.getBytes
+      | """.stripMargin
   )
 
   "minimal args" should "retreive all default values" in {
