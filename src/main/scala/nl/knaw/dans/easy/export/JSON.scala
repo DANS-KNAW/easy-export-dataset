@@ -38,7 +38,7 @@ object JSON {
     */
   def apply(sdoDir: File,
             datastreams: Seq[Node],
-            relsExt: Elem,
+            relsExt: Node,
             placeHoldersFor: Seq[String]
            )(implicit s: Settings): Try[String] = Try {
 

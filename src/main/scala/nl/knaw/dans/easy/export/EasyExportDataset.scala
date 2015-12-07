@@ -51,39 +51,55 @@ object EasyExportDataset {
     } yield allIds
   }
 
-  def exportObject(objectId: String,
+  private def exportObject(objectId: String,
                   allIds: Seq[String]
                   )(implicit s: Settings): Try[Unit] = {
     val sdoDir = new File(s.sdoSet,toSdoName(objectId))
     log.info(s"exporting $objectId to $sdoDir")
     for {
-      _                  <- Try(sdoDir.mkdir())
       foXmlInputStream   <- s.fedora.getFoXml(objectId)
       foXml              <- foXmlInputStream.readXmlAndClose
+      datastreams        <- Try((foXml \ "datastream").theSeq.filter(download))
+      relsExtXml         <- getRelsExt(foXml)
+      jsonContent        <- JSON(sdoDir, datastreams, relsExtXml , placeHoldersFor = allIds)
+      _                  <- Try(sdoDir.mkdir())
       _                  <- new File(sdoDir, "fo.xml").safeWrite(strip(foXml))
-      relsExtInputStream <- s.fedora.disseminateDatastream(objectId, "RELS-EXT")
-      relsExtXML         <- relsExtInputStream.readXmlAndClose
-      datastreams        <- Try((foXml \ "datastream").theSeq.filterNot(skip))
-      jsonContent        <- JSON(sdoDir, datastreams, relsExtXML, placeHoldersFor = allIds)
       _                  <- new File(sdoDir, "cfg.json").safeWrite(jsonContent)
       _                  <- datastreams.foreachUntilFailure((ds: Node) => exportDatastream(objectId, sdoDir, ds))
     } yield ()
   }
 
-  def skip(n: Node): Boolean = Set("RELS-EXT", "AUDIT")
-    .contains(n.attribute("ID").get.head.text)// N.B: .get and .head are not safe
-
-  def exportDatastream(objectId:String,
+  private def exportDatastream(objectId:String,
                        sdoDir: File,
                        ds: Node
                       )(implicit s: Settings): Try[Unit]= {
-      for {
-        dsID       <- Try(ds \@ "ID")
-        exportFile = new File(sdoDir, dsID)
-        _          = log.info(s"exporting datastream $dsID to $exportFile")
-        is         <- s.fedora.disseminateDatastream(objectId, dsID)
-        _          <- is.copyAndClose(exportFile)
-      // TODO histories of versionable datastreams such as (additional) licenses?
-      } yield ()
+    for {
+      dsID       <- Try(ds \@ "ID")
+      exportFile = new File(sdoDir, dsID)
+      _          = log.info(s"exporting datastream $dsID to $exportFile")
+      is         <- s.fedora.disseminateDatastream(objectId, dsID)
+      _          <- is.copyAndClose(exportFile)
+    // TODO histories of versionable datastreams such as (additional) licenses?
+    } yield ()
+  }
+
+  private def getRelsExt(foXml: Node) = Try((
+    (foXml \ "datastream").theSeq.filter(n => n \@ "ID" == "RELS-EXT"
+    ).last \ "datastreamVersion" \ "xmlContent"
+    ).last.descendant.filter(_.label=="RDF").last)
+
+  private val skipDownload = Set("RELS-EXT", "AUDIT") ++ FOXML.plainCopy
+  private def download(datastream: Node): Boolean = {
+
+    val datastreamID = datastream.attribute("ID").get.head.text
+    // N.B: in theory .get and .head are not safe, in practice that means invalid RELS-EXT
+
+    if (skipDownload.contains(datastreamID))
+      false
+    else { // skip datastreams that are references to external storage
+      val cl = (datastream \ "datastreamVersion") \ "contentLocation"
+      if (cl.isEmpty) true // inline datastream
+      else (cl.last \@ "TYPE") == "INTERNAL_ID"
     }
+  }
 }
