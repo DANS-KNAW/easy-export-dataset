@@ -23,7 +23,7 @@ import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods._
 
 import scala.util.{Failure, Try}
-import scala.xml.{Elem, Node}
+import scala.xml.Node
 
 object JSON {
 
@@ -33,14 +33,13 @@ object JSON {
     * @param sdoDir a directory for the staged digital object
     * @param datastreams subsection of foXML
     * @param relsExt the content of the RESL-EXT datastream
-    * @param s configuration required to construct an sdoDir from a fedora-id
     * @return a string representation of a json object
     */
   def apply(sdoDir: File,
             datastreams: Seq[Node],
             relsExt: Node,
             placeHoldersFor: Seq[String]
-           )(implicit s: Settings): Try[String] = Try {
+           ): Try[String] = Try {
 
     val descriptionNode = (relsExt \ "Description").head
     val objectId = descriptionNode.attribute(rdf, "about").get.head.text.replaceAll("[^/]*/", "")
@@ -58,7 +57,7 @@ object JSON {
 
   private def convertRelation(n: Node,
                               placeHoldersFor: Seq[String]
-                             )(implicit s: Settings): JsonAST.JObject = {
+                             ): JsonAST.JObject = {
     val isLiteral = {
       val a = n.attribute(rdf, "parseType")
       a.isDefined && a.get.text == "Literal"
