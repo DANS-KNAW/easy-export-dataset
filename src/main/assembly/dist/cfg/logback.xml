@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <property name="PROGRAM" value="easy-update-solr-index" />
+    <property name="PROGRAM" value="easy-export_dataset" />
     <property name="LOGDIR" value="/var/log/${PROGRAM}" />
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -24,7 +24,7 @@
     <root level="error">
         <appender-ref ref="CONSOLE" />
     </root>
-    <logger name="nl.knaw.dans.easy.solr" level="info">
+    <logger name="nl.knaw.dans.easy.export" level="info">
         <appender-ref ref="FILE" />
     </logger>
 </configuration>
