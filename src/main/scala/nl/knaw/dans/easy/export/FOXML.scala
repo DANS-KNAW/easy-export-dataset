@@ -34,6 +34,8 @@ object FOXML {
     override def transform(n: Node): NodeSeq = n match {
       case Elem("foxml", "datastream", _, _, _*) if !plainCopy.contains(n \@ "ID") =>
         NodeSeq.Empty
+      case Elem("foxml", "contentDigest", _, _, _*) if !plainCopy.contains(n \@ "ID") =>
+        NodeSeq.Empty
       case Elem("dc", "identifier", _, _, _*) if hasDatasetNamespace(n) =>
         NodeSeq.Empty
       case Elem("foxml", "digitalObject", attrs, scope, children @ _*) =>
