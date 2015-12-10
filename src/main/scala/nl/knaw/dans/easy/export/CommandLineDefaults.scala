@@ -27,7 +27,7 @@ class CommandLineDefaults private(shortToLongKeys: Map[Char,String],
                                   defaultKeyValuePairs: Map[String, String]
                                  ) {
   def getOmittedOptions(specifiedArgs: Seq[String]
-                       ): Seq[String] =
+                       ): Array[String] =
     if (specifiedArgs.contains("--help") || specifiedArgs.contains("--version"))
                              Array[String]()
     else {
@@ -35,9 +35,10 @@ class CommandLineDefaults private(shortToLongKeys: Map[Char,String],
       val shortArgs = specifiedArgs.filter(_.matches("-[a-zA-Z].*")).map(_.charAt(1))
       val allArgs = longArgs ++ shortArgs.map(shortToLongKeys.getOrElse(_,"?"))
 
-      defaultKeyValuePairs.keys.filter(!allArgs.contains(_)).flatMap {
-        key => Seq(s"--$key", defaultKeyValuePairs.get(key).get)
-      }.toSeq
+      val strings = defaultKeyValuePairs.keys.filter(!allArgs.contains(_)).toArray.map {
+        key => Array(s"--$key", defaultKeyValuePairs.get(key).get)
+      }
+      strings.flatten
     }
 }
 
