@@ -22,7 +22,7 @@ import nl.knaw.dans.easy.export.FOXML.strip
 import org.slf4j.LoggerFactory
 
 import scala.util.Try
-import scala.xml.Node
+import scala.xml.{Elem, Node}
 
 class EasyExportDataset(s: Settings) {
 
@@ -31,15 +31,15 @@ class EasyExportDataset(s: Settings) {
     for {
       _      <- Try(s.sdoSet.mkdirs())
       subIds <- s.fedora.getSubordinates(s.datasetId)
-      allIds = s.datasetId +: subIds
-      _      <- exportObject(s.datasetId, allIds) // TODO rename sdoDir easy_dataset_NNN to dataset?
+      allIds  = s.datasetId +: subIds
       _      <- subIds.foreachUntilFailure((id: String) => exportObject(id,allIds))
+      _      <- exportObject(s.datasetId, allIds) // side effect: logs users in AMD, please keep as late as possible
     } yield allIds
   }
 
   private def exportObject(objectId: String,
                            allIds: Seq[String]
-                          ): Try[Unit] = {
+                          ): Try[Node] = {
     val sdoDir = new File(s.sdoSet,toSdoName(objectId))
     EasyExportDataset.log.info(s"exporting $objectId to $sdoDir")
     for {
@@ -49,10 +49,11 @@ class EasyExportDataset(s: Settings) {
       relsExtXml         <- getRelsExt(foXml)
       jsonContent        <- JSON(sdoDir, datastreams, relsExtXml , placeHoldersFor = allIds)
       _                  <- Try(sdoDir.mkdir())
-      _                  <- new File(sdoDir, "fo.xml").safeWrite(strip(foXml))
-      _                  <- new File(sdoDir, "cfg.json").safeWrite(jsonContent)
       _                  <- datastreams.foreachUntilFailure((ds: Node) => exportDatastream(objectId, sdoDir, ds))
-    } yield ()
+      _                  <- new File(sdoDir, "cfg.json").safeWrite(jsonContent)
+      content             = strip(foXml) // side effect: logs users in AMD, please keep as late as possible
+      _                  <- new File(sdoDir, "fo.xml").safeWrite(content)
+    } yield foXml
   }
 
   private def exportDatastream(objectId:String,
