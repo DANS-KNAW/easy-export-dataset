@@ -25,11 +25,16 @@ import scala.xml._
 
 package object export {
 
-  def invert[T1,T2] (m: Map[T1,T2]): Map[T2,T1] =
-    m.map{case (key,value) => (value,key)}
+  def invert[T1, T2](m: Map[T1, T2]): Map[T2, T1] =
+    m.map { case (key, value) => (value, key) }
 
   def toSdoName(objectId: String): String =
     objectId.replaceAll("[^0-9a-zA-Z]", "_")
+
+  implicit class RichNode(n: Node) {
+    def headOfAttr(namespace: String, attrName: String): Option[String] =
+      n.attribute(namespace, attrName).flatMap(xs => xs.headOption.map(_.text))
+  }
 
   implicit class RichFile (left: File) {
     def safeWrite(content: String): Try[Unit] = {
