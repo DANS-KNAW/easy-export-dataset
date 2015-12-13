@@ -15,10 +15,15 @@
   * *****************************************************************************/
 package nl.knaw.dans.easy.export
 
+import nl.knaw.dans.easy.export.EasyExportDataset._
+import org.slf4j.LoggerFactory
+
 import scala.xml.transform.{RewriteRule, RuleTransformer}
 import scala.xml.{Elem, Node, NodeSeq}
 
 object FOXML {
+
+  private val log = LoggerFactory.getLogger(getClass)
 
   /** Keep inline datastreams that do not contain dataset-related fedora-ids.
     *
@@ -34,12 +39,18 @@ object FOXML {
     override def transform(n: Node): NodeSeq = n match {
       case Elem("foxml", "datastream", _, _, _*) if !plainCopy.contains(n \@ "ID") =>
         NodeSeq.Empty
-      case Elem("foxml", "contentDigest", _, _, _*) if !plainCopy.contains(n \@ "ID") =>
+      case Elem("foxml", "contentDigest", _, _, _*) =>
         NodeSeq.Empty
       case Elem("dc", "identifier", _, _, _*) if hasDatasetNamespace(n) =>
         NodeSeq.Empty
       case Elem("foxml", "digitalObject", attrs, scope, children @ _*) =>
         Elem("foxml", "digitalObject", attrs.remove("PID"), scope, minimizeEmpty=false, children: _*)
+      case Elem(_, "depositorId", _, _, _*) =>
+        log.warn(s"fo.xml contains depositorId: ${n.text}")
+        n
+      case Elem(_, "doneById", _, _, _*) =>
+        log.warn(s"fo.xml contains doneById: ${n.text}")
+        n
       case _ => n
     }
   }

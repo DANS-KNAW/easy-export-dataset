@@ -58,26 +58,22 @@ object JSON {
   private def convertRelation(n: Node,
                               placeHoldersFor: Seq[String]
                              ): JsonAST.JObject = {
-    val isLiteral = {
-      val a = n.attribute(rdf, "parseType")
-      a.isDefined && a.get.text == "Literal"
-    }
-    if (isLiteral)
+    val resource = n.headOfAttr(rdf, "resource")
+    if (resource.isEmpty)
       ("predicate" -> s"${n.namespace}${n.label}") ~
         ("object" -> n.text) ~
         ("isLiteral" -> true)
     else {
-      val resource = n.attribute(rdf, "resource").get.head.text
-      val objectID = resource.replaceAll("[^/]*/", "")
+      val objectID = resource.get.replaceAll("[^/]*/", "")
       if (placeHoldersFor.contains(objectID)) {
         ("predicate" -> s"${n.namespace}${n.label}") ~ ("objectSDO" -> toSdoName(objectID))
       }
       else
-        ("predicate" -> s"${n.namespace}${n.label}") ~ ("object" -> resource)
+        ("predicate" -> s"${n.namespace}${n.label}") ~ ("object" -> resource.get)
     }
   }
 
-  def convertDatastream(ds: Node, sdoDir: File): JObject = {
+  private def convertDatastream(ds: Node, sdoDir: File): JObject = {
     val datastreamID = ds \@ "ID"
     val datastreamVersion = (ds \ "datastreamVersion").last
     val controlGroup = ds \@ "CONTROL_GROUP"
