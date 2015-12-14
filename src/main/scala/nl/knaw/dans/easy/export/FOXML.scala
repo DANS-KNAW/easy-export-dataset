@@ -51,6 +51,10 @@ object FOXML {
       case Elem(_, "doneById", _, _, _*) =>
         log.warn(s"fo.xml contains doneById: ${n.text}")
         n
+      case Elem("foxml", "property", _, _, _*) =>
+        if ((n \@ "NAME").contains("ownerId"))
+          log.warn(s"fo.xml contains property ownerId: ${n \@ "VALUE"}")
+        n
       case _ => n
     }
   }
