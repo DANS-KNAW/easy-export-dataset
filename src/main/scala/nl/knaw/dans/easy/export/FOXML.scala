@@ -35,7 +35,7 @@ object FOXML {
   val plainCopy = Seq("DC", "EMD", "AMD", "PRSQL", "DMD")
 
   /** labels of XML elements that contain user IDs, e.g: <depositorId>someone</depositorId> */
-  val userLabels = Set("user-id", "depositorId", "doneById", "requestorId")
+  val userLabels = Set("user-id", "depositorId", "doneById", "requesterId")
 
   private val rule = new RewriteRule {
     override def transform(n: Node): NodeSeq = n match {
