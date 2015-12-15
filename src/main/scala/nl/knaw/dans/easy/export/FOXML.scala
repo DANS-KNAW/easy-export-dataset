@@ -34,6 +34,9 @@ object FOXML {
     */
   val plainCopy = Seq("DC", "EMD", "AMD", "PRSQL", "DMD")
 
+  /** labels of XML elements that contain user IDs, e.g: <depositorId>someone</depositorId> */
+  val userLabels = Set("user-id", "depositorId", "doneById", "requestorId")
+
   private val rule = new RewriteRule {
     override def transform(n: Node): NodeSeq = n match {
 
@@ -50,20 +53,14 @@ object FOXML {
         Elem("foxml", "digitalObject", attrs.remove("PID"), scope, minimizeEmpty=false, children: _*)
 
       // warnings for user ids's
-      case Elem(_, "depositorId", _, _, _*) =>
-        log.warn(s"fo.xml contains depositorId: ${n.text}")
-        n
-      case Elem(_, "doneById", _, _, _*) =>
-        log.warn(s"fo.xml contains doneById: ${n.text}")
-        n
       case Elem("foxml", "property", _, _, _*) =>
         if ((n \@ "NAME").contains("ownerId"))
           log.warn(s"fo.xml contains property ownerId: ${n \@ "VALUE"}")
         n
-      case Elem(_, "requestorId", _, _, _*) =>
-        log.warn(s"fo.xml contains requestorId: ${n.text}")
+      case _ =>
+        if (userLabels.contains(n.label))
+          log.warn(s"fo.xml contains ${n.label}: ${n.text}")
         n
-      case _ => n
     }
   }
 
