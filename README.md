@@ -8,8 +8,8 @@ SYNOPSIS
 --------
 
     easy-export-dataset <dataset-pid> <staged-digital-object-set>
-    
- 
+
+
 DESCRIPTION
 -----------
 
@@ -18,9 +18,14 @@ exported, including: the dataset, all file and folder items, download history an
 is not present in the Fedora repository or `stage-digital-object-set` cannot be created (e.g., it already exists)
 the program terminates with an error.
 
-All datastreams except `RELS-EXT` are exported to external files referenced from a `cfg.json` ([Digital Object Configuration]) 
-file. `RELS-EXT` is exported to the "relations"-map in this file. Fedora PIDs that reference digital objects in the
-same dataset are replaced by the appropriate SDO-name. 
+For each digital object the last version of each (managed) datastream, a `fo.xml` and `cfg.json` file are downloaded.
+The `fo.xml` file includes the inline datastreams DC, EMD, AMD, PRSQL, DMD.
+- the datastream AUDIT is skipped completely
+- RELS-EXT is exported into to the "relations"-map in the file `cfg.json` ([Digital Object Configuration])
+  Fedora PIDs that reference digital objects in the same dataset are replaced by the appropriate SDO-name.
+- EASY-FILE-METADATA is downloaded separately as are eventual other inline datastreams not mentioned above
+- checksums and dataset related PIDs in the `fo.xml` are skipped
+
 
 ARGUMENTS
 ---------

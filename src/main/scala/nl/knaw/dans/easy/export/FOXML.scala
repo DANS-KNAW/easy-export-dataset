@@ -15,7 +15,6 @@
   * *****************************************************************************/
 package nl.knaw.dans.easy.export
 
-import nl.knaw.dans.easy.export.EasyExportDataset._
 import org.slf4j.LoggerFactory
 
 import scala.xml.transform.{RewriteRule, RuleTransformer}
@@ -35,27 +34,33 @@ object FOXML {
     */
   val plainCopy = Seq("DC", "EMD", "AMD", "PRSQL", "DMD")
 
+  /** labels of XML elements that contain user IDs, e.g: <depositorId>someone</depositorId> */
+  val userLabels = Set("user-id", "depositorId", "doneById", "requesterId")
+
   private val rule = new RewriteRule {
     override def transform(n: Node): NodeSeq = n match {
+
+      // skip fedora IDs
       case Elem("foxml", "datastream", _, _, _*) if !plainCopy.contains(n \@ "ID") =>
         NodeSeq.Empty
       case Elem("foxml", "contentDigest", _, _, _*) =>
         NodeSeq.Empty
       case Elem("dc", "identifier", _, _, _*) if hasDatasetNamespace(n) =>
         NodeSeq.Empty
+      case Elem(_, "sid", _, _, _*) if hasDatasetNamespace(n) =>
+        NodeSeq.Empty
       case Elem("foxml", "digitalObject", attrs, scope, children @ _*) =>
         Elem("foxml", "digitalObject", attrs.remove("PID"), scope, minimizeEmpty=false, children: _*)
-      case Elem(_, "depositorId", _, _, _*) =>
-        log.warn(s"fo.xml contains depositorId: ${n.text}")
-        n
-      case Elem(_, "doneById", _, _, _*) =>
-        log.warn(s"fo.xml contains doneById: ${n.text}")
-        n
+
+      // warnings for user ids's
       case Elem("foxml", "property", _, _, _*) =>
         if ((n \@ "NAME").contains("ownerId"))
           log.warn(s"fo.xml contains property ownerId: ${n \@ "VALUE"}")
         n
-      case _ => n
+      case _ =>
+        if (userLabels.contains(n.label))
+          log.warn(s"fo.xml contains ${n.label}: ${n.text}")
+        n
     }
   }
 

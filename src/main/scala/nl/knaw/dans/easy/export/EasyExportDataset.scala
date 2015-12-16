@@ -33,7 +33,7 @@ class EasyExportDataset(s: Settings) {
       subIds <- s.fedora.getSubordinates(s.datasetId)
       allIds  = s.datasetId +: subIds
       _      <- subIds.foreachUntilFailure((id: String) => exportObject(id,allIds))
-      _      <- exportObject(s.datasetId, allIds) // side effect: logs users in AMD, please keep as late as possible
+      _      <- exportObject(s.datasetId, allIds)
     } yield allIds
   }
 
@@ -51,7 +51,7 @@ class EasyExportDataset(s: Settings) {
       _                  <- Try(sdoDir.mkdir())
       _                  <- datastreams.foreachUntilFailure((ds: Node) => exportDatastream(objectId, sdoDir, ds))
       _                  <- new File(sdoDir, "cfg.json").safeWrite(jsonContent)
-      content             = strip(foXml) // side effect: logs users in AMD, please keep as late as possible
+      content             = strip(foXml)
       _                  <- new File(sdoDir, "fo.xml").safeWrite(content)
     } yield foXml
   }
