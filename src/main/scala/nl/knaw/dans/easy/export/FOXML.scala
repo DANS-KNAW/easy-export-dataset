@@ -32,7 +32,7 @@ object FOXML {
     *   these IDs should be identical between EASY-fedora instances
     *   unless a release that changed audiences was not applied everywhere
     */
-  val plainCopy = Seq("DC", "EMD", "AMD", "PRSQL", "DMD")
+  val downloadInFoxml = Seq("DC", "EMD", "AMD", "PRSQL", "DMD")
 
   /** labels of XML elements that contain user IDs, e.g: <depositorId>someone</depositorId> */
   val userLabels = Set("user-id", "depositorId", "doneById", "requesterId")
@@ -41,7 +41,7 @@ object FOXML {
     override def transform(n: Node): NodeSeq = n match {
 
       // skip fedora IDs
-      case Elem("foxml", "datastream", _, _, _*) if !plainCopy.contains(n \@ "ID") =>
+      case Elem("foxml", "datastream", _, _, _*) if !downloadInFoxml.contains(n \@ "ID") =>
         NodeSeq.Empty
       case Elem("foxml", "contentDigest", _, _, _*) =>
         NodeSeq.Empty

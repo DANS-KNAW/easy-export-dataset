@@ -75,7 +75,7 @@ class EasyExportDataset(s: Settings) {
     ).last \ "datastreamVersion" \ "xmlContent"
   ).last.descendant.filter(_.label=="RDF").last)
 
-  private val skipDownload = Set("RELS-EXT", "AUDIT") ++ FOXML.plainCopy
+  private val skipDownload = Set("RELS-EXT", "AUDIT") ++ FOXML.downloadInFoxml
   private def download(datastream: Node): Boolean = {
 
     val datastreamID = datastream.attribute("ID").get.head.text
