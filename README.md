@@ -32,15 +32,9 @@ for the other datastreams:
 Checksums and PIDs of downloaded objects are removed from the downloaded `fo.xml`.
 For that purpose the following components are removed:
 
-* The elements `<dc:idientifier>` and `<sid>` if their content starts with `easy-dataset:`, `easy-file:` or `easy-folder:`
-* The attribute PID in the element `foxml:digitalObject`
-* The element `foxml:contentDigest`
-
-**TODO (add to documentation)**:  
-    
-* **What happens to the checksum of datastreams downloaded separately? (For the sentence about the checksums above I
-  gather that these checksums are not downloaded. Are the checksum settings downloaded? I.e. will the checksum be
-  created when ingesting the staged dataset?)**
+* The elements `<dc:idientifier>` and `<sid>` if their content starts with `easy-dataset:`, `easy-file:`, `easy-folder:` or `dans-jumpoff:`
+* The attribute PID in the element `<foxml:digitalObject>`
+* The attribute DIGEST in the element `<foxml:contentDigest>`
 
 
 ARGUMENTS
