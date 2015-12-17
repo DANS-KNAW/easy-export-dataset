@@ -43,14 +43,14 @@ object FOXML {
       // skip fedora IDs
       case Elem("foxml", "datastream", _, _, _*) if !downloadInFoxml.contains(n \@ "ID") =>
         NodeSeq.Empty
-      case Elem("foxml", "contentDigest", _, _, _*) =>
-        NodeSeq.Empty
       case Elem("dc", "identifier", _, _, _*) if hasDatasetNamespace(n) =>
         NodeSeq.Empty
       case Elem(_, "sid", _, _, _*) if hasDatasetNamespace(n) =>
         NodeSeq.Empty
       case Elem("foxml", "digitalObject", attrs, scope, children @ _*) =>
         Elem("foxml", "digitalObject", attrs.remove("PID"), scope, minimizeEmpty=false, children: _*)
+      case Elem("foxml", "contentDigest", attrs, scope, children @ _*) =>
+        Elem("foxml", "contentDigest", attrs.remove("DIGEST"), scope, minimizeEmpty=false, children: _*)
 
       // warnings for user ids's
       case Elem("foxml", "property", _, _, _*) =>
@@ -67,7 +67,7 @@ object FOXML {
   private val transformer = new RuleTransformer(rule)
 
   private def hasDatasetNamespace(n: Node): Boolean =
-    Seq("easy-dataset", "easy-file", "easy-folder")
+    Seq("easy-dataset", "easy-file", "easy-folder", "dans-jumpoff")
       .contains(n.text.replaceAll(":.*", ""))
 
   def strip(foXml: Elem): String =
