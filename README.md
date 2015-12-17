@@ -18,22 +18,26 @@ exported, including: the dataset, all file and folder items, download history an
 is not present in the Fedora repository or `stage-digital-object-set` cannot be created (e.g., it already exists)
 the program terminates with an error.
 
+Objects belonging to the dataset are selectied via the relation `isSubordinateTo`.
 For each digital object the last version of each (managed) datastream, a `fo.xml` and `cfg.json` file are downloaded.
 The `fo.xml` file includes the inline datastreams `DC`, `EMD`, `AMD`, `PRSQL`, `DMD` as far as they are present. As
 for the other datastreams:
 
 * The datastream `AUDIT` is skipped completely.
 * `RELS-EXT` is exported into to the "relations"-map in the file `cfg.json` ([Digital Object Configuration])
-  Fedora PIDs that reference digital objects in the same dataset are replaced by the appropriate SDO-name.
+  Fedora PIDs that reference downloaded objects are replaced by the appropriate SDO-name.
 * Other datastreams, such as `EASY_FILE_METADATA`,  are downloaded separately regardless whether they are inline or
   managed.
 
-Checksums and dataset related PIDs in the `fo.xml` are skipped.
+Checksums and PIDs of downloaded objects are removed from the downloaded `fo.xml`.
+For that purpose the following components are removed:
+
+* The elements `<dc:idientifier>` and `<sid>` if their content starts with `easy-dataset:`, `easy-file:` or `easy-folder:`
+* The attribute PID in the element `foxml:digitalObject`
+* The element `foxml:contentDigest`
 
 **TODO (add to documentation)**:  
     
-* **WHAT "dataset related PIDs" ARE REFERRED TO HERE?**
-* **What happens to the checksum of the inline datastreams exported in the foxml? (Exported along with the datastream?)**
 * **What happens to the checksum of datastreams downloaded separately? (For the sentence about the checksums above I
   gather that these checksums are not downloaded. Are the checksum settings downloaded? I.e. will the checksum be
   created when ingesting the staged dataset?)**
