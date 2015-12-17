@@ -32,7 +32,7 @@ object FOXML {
     *   these IDs should be identical between EASY-fedora instances
     *   unless a release that changed audiences was not applied everywhere
     */
-  val downloadInFoxml = Seq("DC", "EMD", "AMD", "PRSQL", "DMD")
+  val downloadInFoxml = Seq("DC", "EMD", "AMD", "PRSQL", "DMD", "EASY_FILE_METADATA", "EASY_ITEM_CONTAINER_MD")
 
   /** labels of XML elements that contain user IDs, e.g: <depositorId>someone</depositorId> */
   val userLabels = Set("user-id", "depositorId", "doneById", "requesterId")
@@ -49,6 +49,14 @@ object FOXML {
         NodeSeq.Empty
       case Elem("foxml", "digitalObject", attrs, scope, children @ _*) =>
         Elem("foxml", "digitalObject", attrs.remove("PID"), scope, minimizeEmpty=false, children: _*)
+
+      // obsolete content of FILE_ITEM_METADATA with fedora ids, they might not have been cleaned up
+      case Elem(_, "parentSid", _, _, _*) =>
+        NodeSeq.Empty
+      case Elem(_, "datasetSid", _, _, _*) =>
+        NodeSeq.Empty
+
+      // skip cheksum as we might have altered the content in the cases above
       case Elem("foxml", "contentDigest", attrs, scope, children @ _*) =>
         Elem("foxml", "contentDigest", attrs.remove("DIGEST"), scope, minimizeEmpty=false, children: _*)
 

@@ -20,8 +20,8 @@ the program terminates with an error.
 
 Objects belonging to the dataset are selectied via the relation `isSubordinateTo`.
 For each digital object the last version of each (managed) datastream, a `fo.xml` and `cfg.json` file are downloaded.
-The `fo.xml` file includes the inline datastreams `DC`, `EMD`, `AMD`, `PRSQL`, `DMD` as far as they are present. As
-for the other datastreams:
+The `fo.xml` file includes the inline datastreams `DC`, `EMD`, `AMD`, `PRSQL`, `DMD`, `EASY_FILE_METADATA` and
+`EASY_ITEM_CONTAINER_MD` as far as they are present. As for the other datastreams:
 
 * The datastream `AUDIT` is skipped completely.
 * `RELS-EXT` is exported into to the "relations"-map in the file `cfg.json` ([Digital Object Configuration])
