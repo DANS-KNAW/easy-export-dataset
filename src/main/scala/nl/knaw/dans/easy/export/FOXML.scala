@@ -67,7 +67,7 @@ object FOXML {
   private val transformer = new RuleTransformer(rule)
 
   private def hasDatasetNamespace(n: Node): Boolean =
-    Seq("easy-dataset", "easy-file", "easy-folder")
+    Seq("easy-dataset", "easy-file", "easy-folder", "dans-jumpoff")
       .contains(n.text.replaceAll(":.*", ""))
 
   def strip(foXml: Elem): String =
