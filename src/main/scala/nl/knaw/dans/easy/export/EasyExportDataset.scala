@@ -56,7 +56,7 @@ class EasyExportDataset(s: Settings) {
       foxmlContent        = strip(foXml, allIds)
       _                  <- verifyFedoraIds(foxmlContent, allIds, "fo.xml")
       _                  <- new File(sdoDir, "fo.xml").safeWrite(foxmlContent)
-      _                   = warnForUserIds(foXml)
+      _                   = for (maybeUserId <- getUserIds(foXml)) log.warn(s"fo.xml contains $maybeUserId")
     } yield foXml
   }
 

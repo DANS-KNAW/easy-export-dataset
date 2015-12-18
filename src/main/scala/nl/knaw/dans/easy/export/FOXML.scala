@@ -15,17 +15,13 @@
   * *****************************************************************************/
 package nl.knaw.dans.easy.export
 
-import org.slf4j.LoggerFactory
-
 import scala.util.Try
 import scala.xml.transform.{RewriteRule, RuleTransformer}
-import scala.xml.{NodeSeq, Elem, Node}
+import scala.xml.{Elem, Node, NodeSeq}
 
 object FOXML {
 
-  private val log = LoggerFactory.getLogger(getClass)
-
-  private def rule(ids: Seq[String]) = {
+  private def stripRule(downloadedIds: Seq[String]) = {
     new RewriteRule() {
       override def transform(n: Node): NodeSeq = n match {
 
@@ -35,7 +31,7 @@ object FOXML {
         => NodeSeq.Empty
 
         // skip fedora IDs
-        case _ if ids.contains(n.text)
+        case _ if downloadedIds.contains(n.text)
         => NodeSeq.Empty
         case Elem("foxml", "digitalObject", attrs, scope, children@_*)
         => Elem("foxml", "digitalObject", attrs.remove("PID"), scope, minimizeEmpty = false, children: _*)
@@ -51,7 +47,7 @@ object FOXML {
   }
 
   def strip(foXml: Node, ids: Seq[String]): String =
-    new RuleTransformer(rule(ids)).transform(foXml).head.toString()
+    new RuleTransformer(stripRule(ids)).transform(foXml).head.toString()
 
   def getManagedStreams(foXml: Node) =
     (foXml \ "datastream").theSeq.filter(_ \@ "CONTROL_GROUP" == "M")
@@ -61,12 +57,10 @@ object FOXML {
     ).last \ "datastreamVersion" \ "xmlContent"
     ).last.descendant.filter(_.label=="RDF").last)
 
-  def warnForUserIds(foXml: Node): Unit = Try {
-    for {maybeString <- foXml.descendant_or_self
+  def getUserIds(foXml: Node): List[Option[String]] =
+    foXml.descendant_or_self
       .map(node => toUserMsg(node))
       .filter(_.isDefined).sortBy(_.get).distinct
-    } log.warn(s"fo.xml contains ${maybeString.get}")
-  }
 
   /** labels of XML elements that contain user IDs, e.g: <depositorId>someone</depositorId> */
   private val userLabels = Set("user-id", "depositorId", "doneById", "requesterId")
