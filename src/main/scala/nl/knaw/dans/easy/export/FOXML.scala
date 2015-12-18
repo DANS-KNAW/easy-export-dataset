@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.export
 
 import org.slf4j.LoggerFactory
 
+import scala.util.Try
 import scala.xml.transform.{RewriteRule, RuleTransformer}
 import scala.xml.{Elem, Node, NodeSeq}
 
@@ -34,9 +35,6 @@ object FOXML {
     */
   val downloadInFoxml = Seq("DC", "EMD", "AMD", "PRSQL", "DMD", "EASY_FILE_METADATA", "EASY_ITEM_CONTAINER_MD")
 
-  /** labels of XML elements that contain user IDs, e.g: <depositorId>someone</depositorId> */
-  val userLabels = Set("user-id", "depositorId", "doneById", "requesterId")
-
   private val rule = new RewriteRule {
     override def transform(n: Node): NodeSeq = n match {
 
@@ -50,7 +48,7 @@ object FOXML {
       case Elem("foxml", "digitalObject", attrs, scope, children @ _*) =>
         Elem("foxml", "digitalObject", attrs.remove("PID"), scope, minimizeEmpty=false, children: _*)
 
-      // obsolete content of FILE_ITEM_METADATA with fedora ids, they might not have been cleaned up
+      // skip obsolete content of FILE_ITEM_METADATA with fedora ids, they might not have been cleaned up
       case Elem(_, "parentSid", _, _, _*) =>
         NodeSeq.Empty
       case Elem(_, "datasetSid", _, _, _*) =>
@@ -60,24 +58,39 @@ object FOXML {
       case Elem("foxml", "contentDigest", attrs, scope, children @ _*) =>
         Elem("foxml", "contentDigest", attrs.remove("DIGEST"), scope, minimizeEmpty=false, children: _*)
 
-      // warnings for user ids's
-      case Elem("foxml", "property", _, _, _*) =>
-        if ((n \@ "NAME").contains("ownerId"))
-          log.warn(s"fo.xml contains property ownerId: ${n \@ "VALUE"}")
-        n
-      case _ =>
-        if (userLabels.contains(n.label))
-          log.warn(s"fo.xml contains ${n.label}: ${n.text}")
-        n
+      case _ => n
     }
   }
 
   private val transformer = new RuleTransformer(rule)
 
   private def hasDatasetNamespace(n: Node): Boolean =
-    Seq("easy-dataset", "easy-file", "easy-folder", "dans-jumpoff")
+    Seq("easy-dataset", "easy-file", "easy-folder", "dans-jumpoff", "easy-dlh")
       .contains(n.text.replaceAll(":.*", ""))
 
   def strip(foXml: Elem): String =
     transformer.transform(foXml).head.toString()
+
+
+  def warnForUserIds(foXml: Elem): Unit = Try {
+    for {maybeString <- foXml.descendant_or_self
+      .map(node => toUserMsg(node))
+      .filter(_.isDefined).sortBy(_.get).distinct
+    } log.warn(s"fo.xml contains ${maybeString.get}")
+  }
+
+  /** labels of XML elements that contain user IDs, e.g: <depositorId>someone</depositorId> */
+  private val userLabels = Set("user-id", "depositorId", "doneById", "requesterId")
+
+  private def toUserMsg(node: Node): Option[String] = {
+    if (userLabels.contains(node.label))
+      Some(s"${node.label}: ${node.text}")
+    else if (isOwnerProperty(node))
+      Some(s"property ownerId: ${node \@ "VALUE"}")
+    else None
+  }
+
+  /** Checks for a node like <xxx:property NAME="yyy#ownerId" VALUE="zzz"/> */
+  private def isOwnerProperty(node: Node): Boolean =
+    node.label == "property" && (node \@ "NAME").endsWith("#ownerId")
 }

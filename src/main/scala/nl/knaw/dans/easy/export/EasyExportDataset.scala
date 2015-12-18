@@ -18,31 +18,31 @@ package nl.knaw.dans.easy.export
 
 import java.io.File
 
-import nl.knaw.dans.easy.export.FOXML.strip
+import nl.knaw.dans.easy.export.EasyExportDataset._
+import nl.knaw.dans.easy.export.FOXML.{warnForUserIds, strip}
 import org.slf4j.LoggerFactory
 
 import scala.util.{Failure, Success, Try}
-import scala.xml.{Elem, Node}
+import scala.xml.Node
 
 class EasyExportDataset(s: Settings) {
 
   def run(): Try[Seq[String]] = {
-    EasyExportDataset.log.info(s.toString)
+    log.info(s.toString)
     for {
       _      <- Try(s.sdoSet.mkdirs())
       subIds <- s.fedora.getSubordinates(s.datasetId)
       allIds  = s.datasetId +: subIds
-      _      <- subIds.foreachUntilFailure((id: String) => exportObject(id,allIds))
+      _      <- subIds.foreachUntilFailure(exportObject(_,allIds))
       foXML  <- exportObject(s.datasetId, allIds)
     } yield allIds
   }
-
 
   private def exportObject(objectId: String,
                            allIds: Seq[String]
                           ): Try[Node] = {
     val sdoDir = new File(s.sdoSet,toSdoName(objectId))
-    EasyExportDataset.log.info(s"exporting $objectId to $sdoDir")
+    log.info(s"exporting $objectId to $sdoDir")
     for {
       foXmlInputStream   <- s.fedora.getFoXml(objectId)
       foXml              <- foXmlInputStream.readXmlAndClose
@@ -50,12 +50,13 @@ class EasyExportDataset(s: Settings) {
       relsExtXml         <- getRelsExt(foXml)
       jsonContent        <- JSON(sdoDir, datastreams, relsExtXml , placeHoldersFor = allIds)
       _                  <- Try(sdoDir.mkdir())
-      _                  <- datastreams.foreachUntilFailure((ds: Node) => exportDatastream(objectId, sdoDir, ds))
-      _                  <- verifyIds(jsonContent, allIds, "cfg.json")
+      _                  <- datastreams.foreachUntilFailure(exportDatastream(objectId, sdoDir, _))
+      _                  <- verifyFedoraIds(jsonContent, allIds, "cfg.json")
       _                  <- new File(sdoDir, "cfg.json").safeWrite(jsonContent)
       foxmlContent        = strip(foXml)
-      _                  <- verifyIds(foxmlContent, allIds, "fo.xml")
+      _                  <- verifyFedoraIds(foxmlContent, allIds, "fo.xml")
       _                  <- new File(sdoDir, "fo.xml").safeWrite(foxmlContent)
+      _                   = warnForUserIds(foXml)
     } yield foXml
   }
 
@@ -66,7 +67,7 @@ class EasyExportDataset(s: Settings) {
     for {
       dsID       <- Try(ds \@ "ID")
       exportFile = new File(sdoDir, dsID)
-      _          = EasyExportDataset.log.info(s"exporting datastream $dsID to $exportFile")
+      _          = log.info(s"exporting datastream $dsID to $exportFile")
       is         <- s.fedora.disseminateDatastream(objectId, dsID)
       _          <- is.copyAndClose(exportFile)
     // TODO histories of versionable datastreams such as (additional) licenses?
@@ -74,9 +75,13 @@ class EasyExportDataset(s: Settings) {
   }
 
   /** On the flight verification of a proper implementation.
-    * Errors might occur when trying to export something else than a dataset. */
-  def verifyIds(content: String, allIds: Seq[String], fileName :String): Try[Unit] =
-    allIds.foreachUntilFailure((id: String) => // "$id"
+    * Errors might occur when trying to export something else than a dataset.
+    * A proper implementation means none of the downloaded ids in any fo.xml or cfg.json
+    * Not quoted IDs are accepted, as for example a relation with
+    * "oai:easy.dans.knaw.nl:easy-dataset:300".
+    * */
+  def verifyFedoraIds(content: String, allIds: Seq[String], fileName :String): Try[Unit] =
+    allIds.foreachUntilFailure(id =>
       if (content.contains(s">$id<") || content.contains(s""""$id""""))
         Failure(new Exception(s"$fileName contains a downloaded ID $id\n$content"))
       else Success(Unit)
