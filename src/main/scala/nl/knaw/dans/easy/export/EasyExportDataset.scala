@@ -19,7 +19,7 @@ package nl.knaw.dans.easy.export
 import java.io.File
 
 import nl.knaw.dans.easy.export.EasyExportDataset._
-import nl.knaw.dans.easy.export.FOXML.{warnForUserIds, strip}
+import nl.knaw.dans.easy.export.FOXML._
 import org.slf4j.LoggerFactory
 
 import scala.util.{Failure, Success, Try}
@@ -46,14 +46,14 @@ class EasyExportDataset(s: Settings) {
     for {
       foXmlInputStream   <- s.fedora.getFoXml(objectId)
       foXml              <- foXmlInputStream.readXmlAndClose
-      datastreams        <- Try((foXml \ "datastream").theSeq.filter(download))
+      managedStreams      = getManagedStreams(foXml)
       relsExtXml         <- getRelsExt(foXml)
-      jsonContent        <- JSON(sdoDir, datastreams, relsExtXml , placeHoldersFor = allIds)
+      jsonContent        <- JSON(sdoDir, managedStreams, relsExtXml , placeHoldersFor = allIds)
       _                  <- Try(sdoDir.mkdir())
-      _                  <- datastreams.foreachUntilFailure(exportDatastream(objectId, sdoDir, _))
+      _                  <- managedStreams.foreachUntilFailure(exportDatastream(objectId, sdoDir, _))
       _                  <- verifyFedoraIds(jsonContent, allIds, "cfg.json")
       _                  <- new File(sdoDir, "cfg.json").safeWrite(jsonContent)
-      foxmlContent        = strip(foXml)
+      foxmlContent        = strip(foXml, allIds)
       _                  <- verifyFedoraIds(foxmlContent, allIds, "fo.xml")
       _                  <- new File(sdoDir, "fo.xml").safeWrite(foxmlContent)
       _                   = warnForUserIds(foXml)
@@ -63,7 +63,7 @@ class EasyExportDataset(s: Settings) {
   private def exportDatastream(objectId:String,
                                sdoDir: File,
                                ds: Node
-                              ): Try[Unit]= {
+                              ): Try[Unit]=
     for {
       dsID       <- Try(ds \@ "ID")
       exportFile = new File(sdoDir, dsID)
@@ -72,10 +72,8 @@ class EasyExportDataset(s: Settings) {
       _          <- is.copyAndClose(exportFile)
     // TODO histories of versionable datastreams such as (additional) licenses?
     } yield ()
-  }
 
   /** On the flight verification of a proper implementation.
-    * Errors might occur when trying to export something else than a dataset.
     * A proper implementation means none of the downloaded ids in any fo.xml or cfg.json
     * Not quoted IDs are accepted, as for example a relation with
     * "oai:easy.dans.knaw.nl:easy-dataset:300".
@@ -86,27 +84,6 @@ class EasyExportDataset(s: Settings) {
         Failure(new Exception(s"$fileName contains a downloaded ID $id\n$content"))
       else Success(Unit)
     )
-
-  private def getRelsExt(foXml: Node) = Try((
-    (foXml \ "datastream").theSeq.filter(n => n \@ "ID" == "RELS-EXT"
-    ).last \ "datastreamVersion" \ "xmlContent"
-  ).last.descendant.filter(_.label=="RDF").last)
-
-  private val skipDownload = Set("RELS-EXT", "AUDIT") ++ FOXML.downloadInFoxml
-  private def download(datastream: Node): Boolean = {
-
-    val datastreamID = datastream.attribute("ID").get.head.text
-    // N.B: in theory .get and .head are not safe, in practice that means invalid RELS-EXT
-    // this method is a filter argument, calling the filter is made honest with a try
-
-    if (skipDownload.contains(datastreamID))
-      false
-    else { // skip datastreams that are references to external storage
-      val cl = (datastream \ "datastreamVersion") \ "contentLocation"
-      if (cl.isEmpty) true // inline datastream
-      else (cl.last \@ "TYPE") == "INTERNAL_ID"
-    }
-  }
 }
 
 object EasyExportDataset {

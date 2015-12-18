@@ -19,60 +19,49 @@ import org.slf4j.LoggerFactory
 
 import scala.util.Try
 import scala.xml.transform.{RewriteRule, RuleTransformer}
-import scala.xml.{Elem, Node, NodeSeq}
+import scala.xml.{NodeSeq, Elem, Node}
 
 object FOXML {
 
   private val log = LoggerFactory.getLogger(getClass)
 
-  /** Keep inline datastreams that do not contain dataset-related fedora-ids.
-    *
-    * Rationale:
-    * - sids are not downloaded when downloading EASY_FILE_METADATA.
-    * - EMD contains discipline.id for audiences which are not dataset related
-    *   these IDs should be identical between EASY-fedora instances
-    *   unless a release that changed audiences was not applied everywhere
-    */
-  val downloadInFoxml = Seq("DC", "EMD", "AMD", "PRSQL", "DMD", "EASY_FILE_METADATA", "EASY_ITEM_CONTAINER_MD")
+  private def rule(ids: Seq[String]) = {
+    new RewriteRule() {
+      override def transform(n: Node): NodeSeq = n match {
 
-  private val rule = new RewriteRule {
-    override def transform(n: Node): NodeSeq = n match {
+        // skip downloaded streams handled by cfg.json
+        case Elem("foxml", "datastream", _, _, _*)
+          if (n \@ "ID") == "RELS-EXT" || (n \@ "CONTROL_GROUP") == "M"
+        => NodeSeq.Empty
 
-      // skip fedora IDs
-      case Elem("foxml", "datastream", _, _, _*) if !downloadInFoxml.contains(n \@ "ID") =>
-        NodeSeq.Empty
-      case Elem("dc", "identifier", _, _, _*) if hasDatasetNamespace(n) =>
-        NodeSeq.Empty
-      case Elem(_, "sid", _, _, _*) if hasDatasetNamespace(n) =>
-        NodeSeq.Empty
-      case Elem("foxml", "digitalObject", attrs, scope, children @ _*) =>
-        Elem("foxml", "digitalObject", attrs.remove("PID"), scope, minimizeEmpty=false, children: _*)
+        // skip fedora IDs
+        case _ if ids.contains(n.text)
+        => NodeSeq.Empty
+        case Elem("foxml", "digitalObject", attrs, scope, children@_*)
+        => Elem("foxml", "digitalObject", attrs.remove("PID"), scope, minimizeEmpty = false, children: _*)
 
-      // skip obsolete content of FILE_ITEM_METADATA with fedora ids, they might not have been cleaned up
-      case Elem(_, "parentSid", _, _, _*) =>
-        NodeSeq.Empty
-      case Elem(_, "datasetSid", _, _, _*) =>
-        NodeSeq.Empty
+        // skip cheksum as we might have altered the content in the cases above
+        case Elem("foxml", "contentDigest", attrs, scope, children@_*)
+        => Elem("foxml", "contentDigest", attrs.remove("DIGEST"), scope, minimizeEmpty = false, children: _*)
 
-      // skip cheksum as we might have altered the content in the cases above
-      case Elem("foxml", "contentDigest", attrs, scope, children @ _*) =>
-        Elem("foxml", "contentDigest", attrs.remove("DIGEST"), scope, minimizeEmpty=false, children: _*)
-
-      case _ => n
+        case _
+        => n
+      }
     }
   }
 
-  private val transformer = new RuleTransformer(rule)
+  def strip(foXml: Node, ids: Seq[String]): String =
+    new RuleTransformer(rule(ids)).transform(foXml).head.toString()
 
-  private def hasDatasetNamespace(n: Node): Boolean =
-    Seq("easy-dataset", "easy-file", "easy-folder", "dans-jumpoff", "easy-dlh")
-      .contains(n.text.replaceAll(":.*", ""))
+  def getManagedStreams(foXml: Node) =
+    (foXml \ "datastream").theSeq.filter(_ \@ "CONTROL_GROUP" == "M")
 
-  def strip(foXml: Elem): String =
-    transformer.transform(foXml).head.toString()
+  def getRelsExt(foXml: Node) = Try((
+    (foXml \ "datastream").theSeq.filter(n => n \@ "ID" == "RELS-EXT"
+    ).last \ "datastreamVersion" \ "xmlContent"
+    ).last.descendant.filter(_.label=="RDF").last)
 
-
-  def warnForUserIds(foXml: Elem): Unit = Try {
+  def warnForUserIds(foXml: Node): Unit = Try {
     for {maybeString <- foXml.descendant_or_self
       .map(node => toUserMsg(node))
       .filter(_.isDefined).sortBy(_.get).distinct
