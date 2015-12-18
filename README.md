@@ -18,13 +18,23 @@ exported, including: the dataset, all file and folder items, download history an
 is not present in the Fedora repository or `stage-digital-object-set` cannot be created (e.g., it already exists)
 the program terminates with an error.
 
+Objects belonging to the dataset are selectied via the relation `isSubordinateTo`.
 For each digital object the last version of each (managed) datastream, a `fo.xml` and `cfg.json` file are downloaded.
-The `fo.xml` file includes the inline datastreams DC, EMD, AMD, PRSQL, DMD.
-- the datastream AUDIT is skipped completely
-- RELS-EXT is exported into to the "relations"-map in the file `cfg.json` ([Digital Object Configuration])
-  Fedora PIDs that reference digital objects in the same dataset are replaced by the appropriate SDO-name.
-- EASY-FILE-METADATA is downloaded separately as are eventual other inline datastreams not mentioned above
-- checksums and dataset related PIDs in the `fo.xml` are skipped
+The `fo.xml` file includes the inline datastreams `DC`, `EMD`, `AMD`, `PRSQL`, `DMD` as far as they are present. As
+for the other datastreams:
+
+* The datastream `AUDIT` is skipped completely.
+* `RELS-EXT` is exported into to the "relations"-map in the file `cfg.json` ([Digital Object Configuration])
+  Fedora PIDs that reference downloaded objects are replaced by the appropriate SDO-name.
+* Other datastreams, such as `EASY_FILE_METADATA`,  are downloaded separately regardless whether they are inline or
+  managed.
+
+Checksums and PIDs of downloaded objects are removed from the downloaded `fo.xml`.
+For that purpose the following components are removed:
+
+* The elements `<dc:idientifier>` and `<sid>` if their content starts with `easy-dataset:`, `easy-file:`, `easy-folder:` or `dans-jumpoff:`
+* The attribute PID in the element `<foxml:digitalObject>`
+* The attribute DIGEST in the element `<foxml:contentDigest>`
 
 
 ARGUMENTS
@@ -51,8 +61,8 @@ INSTALLATION AND CONFIGURATION
 
 ### Installation steps:
 
-1. Unzip the tarball to a directory of your choice, e.g. /opt/
-2. A new directory called easy-export-dataset-<version> will be created (referred to as `$APPHOME` in the following)
+1. Unzip the tarball to a directory of your choice, e.g. `/opt/`
+2. A new directory called `easy-export-dataset-<version>` will be created (referred to as `$APPHOME` in the following)
 3. Create a symbolic link to `$APPHOME/bin/easy-export-dataset` at `/usr/bin/easy-export-dataset` (or at some other
    location that is on the `PATH`. 
 

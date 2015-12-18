@@ -21,7 +21,7 @@ import java.io.File
 import nl.knaw.dans.easy.export.FOXML.strip
 import org.slf4j.LoggerFactory
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import scala.xml.{Elem, Node}
 
 class EasyExportDataset(s: Settings) {
@@ -33,9 +33,10 @@ class EasyExportDataset(s: Settings) {
       subIds <- s.fedora.getSubordinates(s.datasetId)
       allIds  = s.datasetId +: subIds
       _      <- subIds.foreachUntilFailure((id: String) => exportObject(id,allIds))
-      _      <- exportObject(s.datasetId, allIds)
+      foXML  <- exportObject(s.datasetId, allIds)
     } yield allIds
   }
+
 
   private def exportObject(objectId: String,
                            allIds: Seq[String]
@@ -50,9 +51,11 @@ class EasyExportDataset(s: Settings) {
       jsonContent        <- JSON(sdoDir, datastreams, relsExtXml , placeHoldersFor = allIds)
       _                  <- Try(sdoDir.mkdir())
       _                  <- datastreams.foreachUntilFailure((ds: Node) => exportDatastream(objectId, sdoDir, ds))
+      _                  <- verifyIds(jsonContent, allIds, "cfg.json")
       _                  <- new File(sdoDir, "cfg.json").safeWrite(jsonContent)
-      content             = strip(foXml)
-      _                  <- new File(sdoDir, "fo.xml").safeWrite(content)
+      foxmlContent        = strip(foXml)
+      _                  <- verifyIds(foxmlContent, allIds, "fo.xml")
+      _                  <- new File(sdoDir, "fo.xml").safeWrite(foxmlContent)
     } yield foXml
   }
 
@@ -70,12 +73,21 @@ class EasyExportDataset(s: Settings) {
     } yield ()
   }
 
+  /** On the flight verification of a proper implementation.
+    * Errors might occur when trying to export something else than a dataset. */
+  def verifyIds(content: String, allIds: Seq[String], fileName :String): Try[Unit] =
+    allIds.foreachUntilFailure((id: String) => // "$id"
+      if (content.contains(s">$id<") || content.contains(s""""$id""""))
+        Failure(new Exception(s"$fileName contains a downloaded ID $id\n$content"))
+      else Success(Unit)
+    )
+
   private def getRelsExt(foXml: Node) = Try((
     (foXml \ "datastream").theSeq.filter(n => n \@ "ID" == "RELS-EXT"
     ).last \ "datastreamVersion" \ "xmlContent"
   ).last.descendant.filter(_.label=="RDF").last)
 
-  private val skipDownload = Set("RELS-EXT", "AUDIT") ++ FOXML.plainCopy
+  private val skipDownload = Set("RELS-EXT", "AUDIT") ++ FOXML.downloadInFoxml
   private def download(datastream: Node): Boolean = {
 
     val datastreamID = datastream.attribute("ID").get.head.text

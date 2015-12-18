@@ -32,7 +32,7 @@ object FOXML {
     *   these IDs should be identical between EASY-fedora instances
     *   unless a release that changed audiences was not applied everywhere
     */
-  val plainCopy = Seq("DC", "EMD", "AMD", "PRSQL", "DMD")
+  val downloadInFoxml = Seq("DC", "EMD", "AMD", "PRSQL", "DMD")
 
   /** labels of XML elements that contain user IDs, e.g: <depositorId>someone</depositorId> */
   val userLabels = Set("user-id", "depositorId", "doneById", "requesterId")
@@ -41,9 +41,7 @@ object FOXML {
     override def transform(n: Node): NodeSeq = n match {
 
       // skip fedora IDs
-      case Elem("foxml", "datastream", _, _, _*) if !plainCopy.contains(n \@ "ID") =>
-        NodeSeq.Empty
-      case Elem("foxml", "contentDigest", _, _, _*) =>
+      case Elem("foxml", "datastream", _, _, _*) if !downloadInFoxml.contains(n \@ "ID") =>
         NodeSeq.Empty
       case Elem("dc", "identifier", _, _, _*) if hasDatasetNamespace(n) =>
         NodeSeq.Empty
@@ -51,6 +49,8 @@ object FOXML {
         NodeSeq.Empty
       case Elem("foxml", "digitalObject", attrs, scope, children @ _*) =>
         Elem("foxml", "digitalObject", attrs.remove("PID"), scope, minimizeEmpty=false, children: _*)
+      case Elem("foxml", "contentDigest", attrs, scope, children @ _*) =>
+        Elem("foxml", "contentDigest", attrs.remove("DIGEST"), scope, minimizeEmpty=false, children: _*)
 
       // warnings for user ids's
       case Elem("foxml", "property", _, _, _*) =>
@@ -67,7 +67,7 @@ object FOXML {
   private val transformer = new RuleTransformer(rule)
 
   private def hasDatasetNamespace(n: Node): Boolean =
-    Seq("easy-dataset", "easy-file", "easy-folder")
+    Seq("easy-dataset", "easy-file", "easy-folder", "dans-jumpoff")
       .contains(n.text.replaceAll(":.*", ""))
 
   def strip(foXml: Elem): String =
