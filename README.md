@@ -20,19 +20,14 @@ the program terminates with an error.
 
 Objects belonging to the dataset are selectied via the relation `isSubordinateTo`.
 For each digital object the last version of each (managed) datastream, a `fo.xml` and `cfg.json` file are downloaded.
-The `fo.xml` file includes the inline datastreams `DC`, `EMD`, `AMD`, `PRSQL`, `DMD` as far as they are present. As
-for the other datastreams:
-
-* The datastream `AUDIT` is skipped completely.
-* `RELS-EXT` is exported into to the "relations"-map in the file `cfg.json` ([Digital Object Configuration])
-  Fedora PIDs that reference downloaded objects are replaced by the appropriate SDO-name.
-* Other datastreams, such as `EASY_FILE_METADATA`,  are downloaded separately regardless whether they are inline or
-  managed.
+The `fo.xml` file includes the inline datastreams except `RELS_EXT`
+which is exported into to the "relations"-map in the file `cfg.json` ([Digital Object Configuration]).
+Fedora PIDs in this file that reference downloaded objects are replaced by the appropriate SDO-name.
 
 Checksums and PIDs of downloaded objects are removed from the downloaded `fo.xml`.
 For that purpose the following components are removed:
 
-* The elements `<dc:idientifier>` and `<sid>` if their content starts with `easy-dataset:`, `easy-file:`, `easy-folder:` or `dans-jumpoff:`
+* Any element who's content equals the id of one of the downloaded objects,
 * The attribute PID in the element `<foxml:digitalObject>`
 * The attribute DIGEST in the element `<foxml:contentDigest>`
 

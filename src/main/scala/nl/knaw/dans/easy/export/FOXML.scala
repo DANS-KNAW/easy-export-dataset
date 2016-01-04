@@ -15,61 +15,65 @@
   * *****************************************************************************/
 package nl.knaw.dans.easy.export
 
-import org.slf4j.LoggerFactory
-
+import scala.util.Try
 import scala.xml.transform.{RewriteRule, RuleTransformer}
 import scala.xml.{Elem, Node, NodeSeq}
 
 object FOXML {
 
-  private val log = LoggerFactory.getLogger(getClass)
+  private def stripRule(downloadedIds: Seq[String]) = {
+    new RewriteRule() {
+      override def transform(n: Node): NodeSeq = n match {
 
-  /** Keep inline datastreams that do not contain dataset-related fedora-ids.
-    *
-    * Rationale:
-    * - sids are not downloaded when downloading EASY_FILE_METADATA.
-    * - EMD contains discipline.id for audiences which are not dataset related
-    *   these IDs should be identical between EASY-fedora instances
-    *   unless a release that changed audiences was not applied everywhere
-    */
-  val downloadInFoxml = Seq("DC", "EMD", "AMD", "PRSQL", "DMD")
+        // skip downloaded streams handled by cfg.json
+        case Elem("foxml", "datastream", _, _, _*)
+          if (n \@ "ID") == "RELS-EXT" || (n \@ "CONTROL_GROUP") == "M"
+        => NodeSeq.Empty
 
-  /** labels of XML elements that contain user IDs, e.g: <depositorId>someone</depositorId> */
-  val userLabels = Set("user-id", "depositorId", "doneById", "requesterId")
+        // skip fedora IDs
+        case _ if downloadedIds.contains(n.text)
+        => NodeSeq.Empty
+        case Elem("foxml", "digitalObject", attrs, scope, children@_*)
+        => Elem("foxml", "digitalObject", attrs.remove("PID"), scope, minimizeEmpty = false, children: _*)
 
-  private val rule = new RewriteRule {
-    override def transform(n: Node): NodeSeq = n match {
+        // skip cheksum as we might have altered the content in the cases above
+        case Elem("foxml", "contentDigest", attrs, scope, children@_*)
+        => Elem("foxml", "contentDigest", attrs.remove("DIGEST"), scope, minimizeEmpty = false, children: _*)
 
-      // skip fedora IDs
-      case Elem("foxml", "datastream", _, _, _*) if !downloadInFoxml.contains(n \@ "ID") =>
-        NodeSeq.Empty
-      case Elem("dc", "identifier", _, _, _*) if hasDatasetNamespace(n) =>
-        NodeSeq.Empty
-      case Elem(_, "sid", _, _, _*) if hasDatasetNamespace(n) =>
-        NodeSeq.Empty
-      case Elem("foxml", "digitalObject", attrs, scope, children @ _*) =>
-        Elem("foxml", "digitalObject", attrs.remove("PID"), scope, minimizeEmpty=false, children: _*)
-      case Elem("foxml", "contentDigest", attrs, scope, children @ _*) =>
-        Elem("foxml", "contentDigest", attrs.remove("DIGEST"), scope, minimizeEmpty=false, children: _*)
-
-      // warnings for user ids's
-      case Elem("foxml", "property", _, _, _*) =>
-        if ((n \@ "NAME").contains("ownerId"))
-          log.warn(s"fo.xml contains property ownerId: ${n \@ "VALUE"}")
-        n
-      case _ =>
-        if (userLabels.contains(n.label))
-          log.warn(s"fo.xml contains ${n.label}: ${n.text}")
-        n
+        case _
+        => n
+      }
     }
   }
 
-  private val transformer = new RuleTransformer(rule)
+  def strip(foXml: Node, ids: Seq[String]): String =
+    new RuleTransformer(stripRule(ids)).transform(foXml).head.toString()
 
-  private def hasDatasetNamespace(n: Node): Boolean =
-    Seq("easy-dataset", "easy-file", "easy-folder", "dans-jumpoff")
-      .contains(n.text.replaceAll(":.*", ""))
+  def getManagedStreams(foXml: Node) =
+    (foXml \ "datastream").theSeq.filter(_ \@ "CONTROL_GROUP" == "M")
 
-  def strip(foXml: Elem): String =
-    transformer.transform(foXml).head.toString()
+  def getRelsExt(foXml: Node) = Try((
+    (foXml \ "datastream").theSeq.filter(n => n \@ "ID" == "RELS-EXT"
+    ).last \ "datastreamVersion" \ "xmlContent"
+    ).last.descendant.filter(_.label=="RDF").last)
+
+  def getUserIds(foXml: Node): List[Option[String]] =
+    foXml.descendant_or_self
+      .map(node => toUserMsg(node))
+      .filter(_.isDefined).sortBy(_.get).distinct
+
+  /** labels of XML elements that contain user IDs, e.g: <depositorId>someone</depositorId> */
+  private val userLabels = Set("user-id", "depositorId", "doneById", "requesterId")
+
+  private def toUserMsg(node: Node): Option[String] = {
+    if (userLabels.contains(node.label))
+      Some(s"${node.label}: ${node.text}")
+    else if (isOwnerProperty(node))
+      Some(s"property ownerId: ${node \@ "VALUE"}")
+    else None
+  }
+
+  /** Checks for a node like <xxx:property NAME="yyy#ownerId" VALUE="zzz"/> */
+  private def isOwnerProperty(node: Node): Boolean =
+    node.label == "property" && (node \@ "NAME").endsWith("#ownerId")
 }
