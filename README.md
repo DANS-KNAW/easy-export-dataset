@@ -13,7 +13,9 @@ SYNOPSIS
 DESCRIPTION
 -----------
 
-Exports an EASY dataset to a [Staged Digital Object set]. All the digital objects belonging to the dataset are 
+Exports an EASY dataset from one repository to a [Staged Digital Object set] which can be [imported] into another EASY Fedora Commons 3.x Repository. 
+
+All the digital objects belonging to the dataset are 
 exported, including: the dataset, all file and folder items, download history and jump-off pages. If `dataset-pid`
 is not present in the Fedora repository or `stage-digital-object-set` cannot be created (e.g., it already exists)
 the program terminates with an error.
@@ -87,3 +89,4 @@ Steps:
 [EASY Metadata]: https://easy.dans.knaw.nl/schemas/md/emd/2013/11/emd.xsd
 [DCTERMS format]: http://dublincore.org/documents/dcmi-terms/#terms-format
 [MIME Type]: https://en.wikipedia.org/wiki/MIME
+[imported]: https://github.com/DANS-KNAW/easy-export-dataset/wiki
