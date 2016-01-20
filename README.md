@@ -1,5 +1,6 @@
 easy-export-dataset
 ===================
+[![Build Status](https://travis-ci.org/DANS-KNAW/easy-export-dataset.svg?branch=master)](https://travis-ci.org/DANS-KNAW/easy-export-dataset)
 
 Export an EASY dataset to a Staged Digital Object set.
 
