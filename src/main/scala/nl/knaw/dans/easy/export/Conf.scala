@@ -24,6 +24,9 @@ import org.slf4j.LoggerFactory
 class Conf private (args: Seq[String]) extends ScallopConf(args) {
   val log = LoggerFactory.getLogger(getClass)
 
+  appendDefaultToDescription = true
+  editBuilder(_.setHelpWidth(110))
+
   printedName = "easy-export-dataset"
   version(s"$printedName v${Version()}")
   banner(s"""
@@ -36,9 +39,9 @@ class Conf private (args: Seq[String]) extends ScallopConf(args) {
             |Options:
             |""".stripMargin)
 
-  val mustNotExist = singleArgConverter[File](conv = { f =>
+  val mustNotExist = singleArgConverter[File](f => {
     if (new File(f).exists()) {
-      log.error(s"$f allready exists")
+      log.error(s"$f already exists")
       throw new IllegalArgumentException()
     }
     new File(f)
@@ -63,7 +66,10 @@ class Conf private (args: Seq[String]) extends ScallopConf(args) {
   /** long option names to explicitly defined short names */
   val optionMap = builder.opts
     .withFilter(_.requiredShortNames.nonEmpty)
-    .map(opt => (opt.name, opt.requiredShortNames.head)).toMap
+    .map(opt => (opt.name, opt.requiredShortNames.head))
+    .toMap
+
+  verify()
 }
 
 object Conf {
