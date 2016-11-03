@@ -39,14 +39,6 @@ class Conf private (args: Seq[String]) extends ScallopConf(args) {
             |Options:
             |""".stripMargin)
 
-  val mustNotExist = singleArgConverter[File](f => {
-    if (new File(f).exists()) {
-      log.error(s"$f already exists")
-      throw new IllegalArgumentException()
-    }
-    new File(f)
-  })
-
   val fedora = opt[URL]("fcrepo-server", required = true, short= 'f',
     descr = "URL of Fedora Commons Repository Server to connect to ")
   val user = opt[String]("fcrepo-user", required = true, short = 'u',
@@ -61,13 +53,15 @@ class Conf private (args: Seq[String]) extends ScallopConf(args) {
   val sdoSet = trailArg[File](
     name = "staged-digital-object-set",
     descr = "The resulting Staged Digital Object directory that will be created.",
-    required = true)(mustNotExist)
+    required = true)
 
   /** long option names to explicitly defined short names */
   val optionMap = builder.opts
     .withFilter(_.requiredShortNames.nonEmpty)
     .map(opt => (opt.name, opt.requiredShortNames.head))
     .toMap
+
+  validateFileDoesNotExist(sdoSet)
 
   verify()
 }
