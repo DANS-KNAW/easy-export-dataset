@@ -24,6 +24,9 @@ import org.slf4j.LoggerFactory
 class Conf private (args: Seq[String]) extends ScallopConf(args) {
   val log = LoggerFactory.getLogger(getClass)
 
+  appendDefaultToDescription = true
+  editBuilder(_.setHelpWidth(110))
+
   printedName = "easy-export-dataset"
   version(s"$printedName v${Version()}")
   banner(s"""
@@ -35,14 +38,6 @@ class Conf private (args: Seq[String]) extends ScallopConf(args) {
             |
             |Options:
             |""".stripMargin)
-
-  val mustNotExist = singleArgConverter[File](conv = { f =>
-    if (new File(f).exists()) {
-      log.error(s"$f allready exists")
-      throw new IllegalArgumentException()
-    }
-    new File(f)
-  })
 
   val fedora = opt[URL]("fcrepo-server", required = true, short= 'f',
     descr = "URL of Fedora Commons Repository Server to connect to ")
@@ -58,12 +53,17 @@ class Conf private (args: Seq[String]) extends ScallopConf(args) {
   val sdoSet = trailArg[File](
     name = "staged-digital-object-set",
     descr = "The resulting Staged Digital Object directory that will be created.",
-    required = true)(mustNotExist)
+    required = true)
 
   /** long option names to explicitly defined short names */
   val optionMap = builder.opts
     .withFilter(_.requiredShortNames.nonEmpty)
-    .map(opt => (opt.name, opt.requiredShortNames.head)).toMap
+    .map(opt => (opt.name, opt.requiredShortNames.head))
+    .toMap
+
+  validateFileDoesNotExist(sdoSet)
+
+  verify()
 }
 
 object Conf {
