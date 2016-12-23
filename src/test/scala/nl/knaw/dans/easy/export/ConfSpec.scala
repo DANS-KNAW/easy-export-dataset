@@ -50,9 +50,8 @@ class ConfSpec extends FlatSpec with Matchers {
   }
 
   "description line(s) in help info" should "be part of README.md and pom.xml" in {
-    val description = clo.description
-    new File("README.md") should containTrimmed(description)
-    new File("pom.xml") should containTrimmed(description)
+    new File("README.md") should containTrimmed(clo.description)
+    new File("pom.xml") should containTrimmed(clo.description)
   }
 
   "distributed default properties" should "be valid options" in {
@@ -62,5 +61,4 @@ class ConfSpec extends FlatSpec with Matchers {
 
     propKeys.foreach(key => optKeys should contain (key.replace("default.","")) )
   }
-
 }

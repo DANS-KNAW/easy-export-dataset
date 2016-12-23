@@ -33,11 +33,11 @@ class Conf (args: Seq[String]) extends ScallopConf(args) {
 
   version(s"$printedName v${Version()}")
   banner(s"""
-            |$description
+            |  $description
             |
             |Usage:
             |
-            | $synopsis
+            |  $synopsis
             |
             |Options:
             |""".stripMargin)
