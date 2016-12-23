@@ -21,20 +21,23 @@ import java.net.URL
 import org.rogach.scallop._
 import org.slf4j.LoggerFactory
 
-class Conf private (args: Seq[String]) extends ScallopConf(args) {
+class Conf (args: Seq[String]) extends ScallopConf(args) {
   val log = LoggerFactory.getLogger(getClass)
 
   appendDefaultToDescription = true
   editBuilder(_.setHelpWidth(110))
 
   printedName = "easy-export-dataset"
+  val description = """Export an EASY dataset to a Staged Digital Object set."""
+  val synopsis = s"""$printedName <dataset-pid> <staged-digital-object-set>"""
+
   version(s"$printedName v${Version()}")
   banner(s"""
-            |Export an EASY dataset to a Staged Digital Object set.
+            |  $description
             |
             |Usage:
             |
-            | $printedName <dataset-pid> <staged-digital-object-set>
+            |  $synopsis
             |
             |Options:
             |""".stripMargin)

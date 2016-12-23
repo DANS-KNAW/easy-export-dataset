@@ -25,36 +25,40 @@ import scala.collection.JavaConverters._
 
 class ConfSpec extends FlatSpec with Matchers {
 
-  val helpInfo = {
+  private val clo = new Conf(Array[String]()) {
+    // avoids System.exit() in case of invalid arguments or "--help"
+    override def verify(): Unit = {}
+  }
+
+  private val helpInfo = {
     val mockedStdOut = new ByteArrayOutputStream()
     Console.withOut(mockedStdOut) {
-      Conf.dummyInstance.printHelp()
+      clo.printHelp()
     }
     mockedStdOut.toString
   }
 
-  "first banner line" should "be part of README.md and pom.xml" in {
-    val description = helpInfo.split("\n")(1)
-    new File("README.md") should containTrimmed(description)
-    new File("pom.xml") should containTrimmed(description)
-  }
-
   "options in help info" should "be part of README.md" in {
-    val options = helpInfo.split("Options:")(1)
+    val lineSeparators = s"(${System.lineSeparator()})+"
+    val options = helpInfo.split(s"${lineSeparators}Options:$lineSeparators")(1)
+    options.trim.length shouldNot be (0)
     new File("README.md") should containTrimmed(options)
   }
 
   "synopsis in help info" should "be part of README.md" in {
-    val synopsis = helpInfo.split("Options:")(0).split("Usage:")(1)
-    new File("README.md") should containTrimmed(synopsis)
+    new File("README.md") should containTrimmed(clo.synopsis)
+  }
+
+  "description line(s) in help info" should "be part of README.md and pom.xml" in {
+    new File("README.md") should containTrimmed(clo.description)
+    new File("pom.xml") should containTrimmed(clo.description)
   }
 
   "distributed default properties" should "be valid options" in {
-    val optKeys = Conf.dummyInstance.builder.opts.map(opt => opt.name).toArray
+    val optKeys = clo.builder.opts.map(opt => opt.name).toArray
     val propKeys = new PropertiesConfiguration("src/main/assembly/dist/cfg/application.properties")
       .getKeys.asScala.withFilter(key => key.startsWith("default.") )
 
     propKeys.foreach(key => optKeys should contain (key.replace("default.","")) )
   }
-
 }
