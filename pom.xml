@@ -27,14 +27,14 @@
     <artifactId>easy-export-dataset</artifactId>
     <name>EASY Export Dataset</name>
     <description>Export an EASY dataset to a Staged Digital Object set.</description>
-    <version>1.x-SNAPSHOT</version>
+    <version>1.1</version>
     <inceptionYear>2015</inceptionYear>
     <properties>
         <main-class>nl.knaw.dans.easy.export.EasyExportDataset</main-class>
     </properties>
     <scm>
         <developerConnection>scm:git:https://github.com/DANS-KNAW/${project.artifactId}</developerConnection>
-        <tag>HEAD</tag>
+        <tag>v1.1</tag>
     </scm>
     <dependencies>
         <dependency>
