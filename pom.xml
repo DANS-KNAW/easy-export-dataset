@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (C) 2015-2016 DANS - Data Archiving and Networked Services (info@dans.knaw.nl)
+    Copyright (C) 2015 DANS - Data Archiving and Networked Services (info@dans.knaw.nl)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@
     <name>EASY Export Dataset</name>
     <description>Export an EASY dataset to a Staged Digital Object set.</description>
     <version>1.x-SNAPSHOT</version>
-    <inceptionYear>2015-2016</inceptionYear>
+    <inceptionYear>2015</inceptionYear>
     <properties>
         <main-class>nl.knaw.dans.easy.export.EasyExportDataset</main-class>
     </properties>
@@ -70,11 +70,6 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>nl.knaw.dans.easy</groupId>
-            <artifactId>ddm</artifactId>
-            <version>3.0</version>
         </dependency>
         <dependency>
             <groupId>com.yourmediashelf.fedora.client</groupId>
