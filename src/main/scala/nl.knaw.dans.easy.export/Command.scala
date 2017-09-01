@@ -30,6 +30,6 @@ object Command extends App {
   ))
     .map(Settings(clo.datasetId(), clo.sdoSet(), _))
     .flatMap(implicit settings => EasyExportDataset.run)
-    .doIfSuccess(ids => println(s"OK: Completed successfully. Ids: ${ ids.mkString(", ") }"))
+    .doIfSuccess(ids => println(s"OK: Completed successfully. Exported: ${ ids.mkString(", ") }"))
     .doIfFailure { case e => println(s"FAILED: ${ e.getMessage }") }
 }
