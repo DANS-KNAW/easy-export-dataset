@@ -17,30 +17,4 @@ package nl.knaw.dans.easy.export
 
 import java.io.File
 
-import com.yourmediashelf.fedora.client.FedoraCredentials
-
-import scala.util.Try
-
-case class Settings(datasetId: String,
-                    sdoSet: File,
-                    fedora: FedoraProvider) {
-}
-
-object Settings {
-  def apply(conf: Conf
-           ): Try[Settings] = {
-    FedoraProvider(createCredentials(conf))
-      .map(new Settings(conf.datasetId(), conf.sdoSet(), _))
-  }
-
-  def createCredentials(conf: Conf
-                       ): FedoraCredentials {def toString: String} = {
-    new FedoraCredentials(
-      conf.fedora(),
-      conf.user(),
-      conf.password()
-    ) {
-      override def toString = s"FedoraCredentials (${conf.fedora()}, ${conf.user()}, ...)"
-    }
-  }
-}
+case class Settings(datasetId: String, sdoSet: File, fedora: FedoraProvider)

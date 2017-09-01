@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,15 +15,21 @@
  */
 package nl.knaw.dans.easy.export
 
-import java.io.File
+import java.nio.file.{ Files, Path, Paths }
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.apache.commons.io.FileUtils
+import org.scalatest.{ FlatSpec, Inside, Matchers }
 
-import scala.xml.Node
+import scala.util.Success
 
-class JsonSpec extends FlatSpec with Matchers {
+class JsonSpec extends FlatSpec with Matchers with Inside {
 
-  implicit val settings = Settings(Conf.dummyInstance).get
+  private val testDir: Path = {
+    val path = Paths.get(s"target/test/${ getClass.getSimpleName }").toAbsolutePath
+    FileUtils.deleteQuietly(path.toFile)
+    Files.createDirectories(path)
+    path
+  }
 
   "file in folder" should "produce proper relations" in {
     val relsExt =
@@ -39,30 +45,29 @@ class JsonSpec extends FlatSpec with Matchers {
                     rdf:resource="info:fedora/dans-container-item-v1"></hasModel>
         </rdf:Description>
       </rdf:RDF>
+    val placeholders = Seq("easy-folder:3", "easy-dataset:1")
 
-    JSON(
-      new File (settings.sdoSet, toSdoName("easy-file:10")),
-      Seq[Node](),
-      relsExt,
-      placeHoldersFor = Seq("easy-folder:3", "easy-dataset:1")
-    ).get shouldBe
-      """{
-        |  "namespace":"easy-file",
-        |  "datastreams":[],
-        |  "relations":[{
-        |    "predicate":"http://dans.knaw.nl/ontologies/relations#isMemberOf",
-        |    "objectSDO":"easy_folder_3"
-        |  },{
-        |    "predicate":"http://dans.knaw.nl/ontologies/relations#isSubordinateTo",
-        |    "objectSDO":"easy_dataset_1"
-        |  },{
-        |    "predicate":"info:fedora/fedora-system:def/model#hasModel",
-        |    "object":"info:fedora/easy-model:EDM1FILE"
-        |  },{
-        |    "predicate":"info:fedora/fedora-system:def/model#hasModel",
-        |    "object":"info:fedora/dans-container-item-v1"
-        |  }]
-        |}""".stripMargin
+    inside(JSON(testDir.resolve(toSdoName("easy-file:10")).toFile, Seq.empty, relsExt, placeholders)) {
+      case Success(json) =>
+        json shouldBe
+          """{
+            |  "namespace":"easy-file",
+            |  "datastreams":[],
+            |  "relations":[{
+            |    "predicate":"http://dans.knaw.nl/ontologies/relations#isMemberOf",
+            |    "objectSDO":"easy_folder_3"
+            |  },{
+            |    "predicate":"http://dans.knaw.nl/ontologies/relations#isSubordinateTo",
+            |    "objectSDO":"easy_dataset_1"
+            |  },{
+            |    "predicate":"info:fedora/fedora-system:def/model#hasModel",
+            |    "object":"info:fedora/easy-model:EDM1FILE"
+            |  },{
+            |    "predicate":"info:fedora/fedora-system:def/model#hasModel",
+            |    "object":"info:fedora/dans-container-item-v1"
+            |  }]
+            |}""".stripMargin
+    }
   }
 
   "dataset" should "produce proper datastreams" in {
@@ -111,46 +116,44 @@ class JsonSpec extends FlatSpec with Matchers {
         </foxml:datastream>
       </foxml:digitalObject>
 
-    JSON(
-      new File(settings.sdoSet,toSdoName("easy-dataset:1")),
-      foXml \ "datastream",
-      relsExt,
-      placeHoldersFor = Seq()
-    ).get shouldBe
-      """{
-        |  "namespace":"easy-dataset",
-        |  "datastreams":[{
-        |    "contentFile":"DC",
-        |    "dsID":"DC",
-        |    "label":"Dublin Core Record for this object",
-        |    "mimeType":"text/xml",
-        |    "controlGroup":"X"
-        |  },{
-        |    "contentFile":"PRSQL",
-        |    "dsID":"PRSQL",
-        |    "label":"Permission request sequences for this dataset",
-        |    "mimeType":"text/xml",
-        |    "controlGroup":"X"
-        |  },{
-        |    "contentFile":"EASY_ITEM_CONTAINER_MD",
-        |    "dsID":"EASY_ITEM_CONTAINER_MD",
-        |    "label":"Metadata for this item container",
-        |    "mimeType":"text/xml",
-        |    "controlGroup":"X"
-        |  },{
-        |    "contentFile":"EMD",
-        |    "dsID":"EMD",
-        |    "label":"Descriptive metadata for this dataset",
-        |    "mimeType":"text/xml",
-        |    "controlGroup":"X"
-        |  },{
-        |    "contentFile":"AMD",
-        |    "dsID":"AMD",
-        |    "label":"Administrative metadata for this dataset",
-        |    "mimeType":"text/xml",
-        |    "controlGroup":"X"
-        |  }],
-        |  "relations":[]
-        |}""".stripMargin
+    inside(JSON(testDir.resolve(toSdoName("easy-dataset:1")).toFile, foXml \ "datastream", relsExt, Seq())) {
+      case Success(json) =>
+        json shouldBe
+          """{
+            |  "namespace":"easy-dataset",
+            |  "datastreams":[{
+            |    "contentFile":"DC",
+            |    "dsID":"DC",
+            |    "label":"Dublin Core Record for this object",
+            |    "mimeType":"text/xml",
+            |    "controlGroup":"X"
+            |  },{
+            |    "contentFile":"PRSQL",
+            |    "dsID":"PRSQL",
+            |    "label":"Permission request sequences for this dataset",
+            |    "mimeType":"text/xml",
+            |    "controlGroup":"X"
+            |  },{
+            |    "contentFile":"EASY_ITEM_CONTAINER_MD",
+            |    "dsID":"EASY_ITEM_CONTAINER_MD",
+            |    "label":"Metadata for this item container",
+            |    "mimeType":"text/xml",
+            |    "controlGroup":"X"
+            |  },{
+            |    "contentFile":"EMD",
+            |    "dsID":"EMD",
+            |    "label":"Descriptive metadata for this dataset",
+            |    "mimeType":"text/xml",
+            |    "controlGroup":"X"
+            |  },{
+            |    "contentFile":"AMD",
+            |    "dsID":"AMD",
+            |    "label":"Administrative metadata for this dataset",
+            |    "mimeType":"text/xml",
+            |    "controlGroup":"X"
+            |  }],
+            |  "relations":[]
+            |}""".stripMargin
+    }
   }
 }

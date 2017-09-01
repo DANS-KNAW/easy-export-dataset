@@ -35,7 +35,7 @@
     <inceptionYear>2015</inceptionYear>
 
     <properties>
-        <main-class>nl.knaw.dans.easy.export.EasyExportDataset</main-class>
+        <main-class>nl.knaw.dans.easy.export.Command</main-class>
     </properties>
 
     <scm>
@@ -95,6 +95,14 @@
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_2.11</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.jsuereth</groupId>
+            <artifactId>scala-arm_2.11</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>nl.knaw.dans.lib</groupId>
+            <artifactId>dans-scala-lib</artifactId>
         </dependency>
     </dependencies>
 
