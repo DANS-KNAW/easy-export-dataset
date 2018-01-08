@@ -15,12 +15,14 @@
  */
 package nl.knaw.dans.easy.export
 
+import java.nio.file.Paths
+
 import com.yourmediashelf.fedora.client.FedoraCredentials
 import nl.knaw.dans.lib.error._
 
 object Command extends App {
 
-  val configuration = Configuration()
+  val configuration = Configuration(Paths.get(System.getProperty("app.home")))
   val clo = new CommandLineOptions(args, configuration)
 
   FedoraProvider(new FedoraCredentials(
