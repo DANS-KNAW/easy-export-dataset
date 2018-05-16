@@ -38,8 +38,8 @@ For that purpose the following components are removed:
 ARGUMENTS
 ---------
 
-     --help      Show help message
-     --version   Show version of this program
+     -h, --help      Show help message
+     -v, --version   Show version of this program
     
     trailing arguments:
      dataset-pid (required)                 The id of a dataset in the fedora repository
