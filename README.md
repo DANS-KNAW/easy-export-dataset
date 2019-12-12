@@ -70,7 +70,15 @@ Steps:
         git clone https://github.com/DANS-KNAW/easy-export-dataset.git
         cd easy-export-dataset
         mvn install
-  
+        
+If the `rpm` executable is found at `/usr/local/bin/rpm`, the build profile that includes the RPM 
+packaging will be activated. If `rpm` is available, but at a different path, then activate it by using
+Maven's `-P` switch: `mvn -Pprm install`.
+
+Alternatively, to build the tarball execute:
+
+    mvn clean install assembly:single
+
 [Staged Digital Object set]: https://github.com/DANS-KNAW/easy-ingest#staged-digital-object-set
 [Digital Object Configuration]: https://github.com/DANS-KNAW/easy-ingest#digital-object-configuration-file
 [EASY Metadata]: https://easy.dans.knaw.nl/schemas/md/emd/2013/11/emd.xsd
