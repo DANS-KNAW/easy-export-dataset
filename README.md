@@ -46,23 +46,14 @@ ARGUMENTS
      staged-digital-object-set (required)   The resulting Staged Digital Object directory that will be created.
 
 
-
-
 INSTALLATION AND CONFIGURATION
 ------------------------------
+Currently this project is built as an RPM package for RHEL7/CentOS7 and later. The RPM will install the binaries to
+`/opt/dans.knaw.nl/easy-export-dataset` and the configuration files to `/etc/opt/dans.knaw.nl/easy-export-dataset` 
 
-### Installation steps:
-
-1. Unzip the tarball to a directory of your choice, e.g. `/opt/`
-2. A new directory called `easy-export-dataset-<version>` will be created (referred to as `$APPHOME` in the following)
-3. Create a symbolic link to `$APPHOME/bin/easy-export-dataset` at `/usr/bin/easy-export-dataset` (or at some other
-   location that is on the `PATH`. 
-
- 
-### Configuration:
-
-Configuration settings must be specified in `$APPHOME/cfg/application.properties`. These include the connection 
-settings for Fedora and for the File-system RDB. Command line arguments can override this configuration.
+To install the module on systems that do not support RPM, you can copy and unarchive the tarball to the target host.
+You will have to take care of placing the files in the correct locations for your system yourself. For instructions
+on building the tarball, see next section.
 
 
 BUILDING FROM SOURCE
@@ -72,6 +63,7 @@ Prerequisites:
 
 * Java 8 or higher
 * Maven 3.3.3 or higher
+* RPM
  
 Steps:
 
