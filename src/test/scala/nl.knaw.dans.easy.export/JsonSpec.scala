@@ -18,11 +18,13 @@ package nl.knaw.dans.easy.export
 import java.nio.file.{ Files, Path, Paths }
 
 import org.apache.commons.io.FileUtils
-import org.scalatest.{ FlatSpec, Inside, Matchers }
+import org.scalatest.Inside
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.util.Success
 
-class JsonSpec extends FlatSpec with Matchers with Inside {
+class JsonSpec extends AnyFlatSpec with Matchers with Inside {
 
   private val testDir: Path = {
     val path = Paths.get(s"target/test/${ getClass.getSimpleName }").toAbsolutePath
